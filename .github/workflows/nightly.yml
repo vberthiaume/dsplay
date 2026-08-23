@@ -11,9 +11,10 @@ jobs:
   nightly:
     uses: ./.github/workflows/build_and_test.yml
     secrets: inherit
-    # Must grant at least what the nested clang-tidy job requests; callees can
-    # only narrow permissions, never widen them. Harmless on a scheduled run
-    # (there's no PR to comment on) but required for the workflow to validate.
+    # Must grant at least what the nested clang-tidy and release jobs request;
+    # callees can only narrow permissions, never widen them. Harmless on a
+    # scheduled run (there's no PR to comment on and no tag to release) but
+    # required for the workflow to validate.
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
