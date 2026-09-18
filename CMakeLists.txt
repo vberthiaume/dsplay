@@ -10,6 +10,9 @@ include (CPM)
 # Configures universal binaries and decides which version of macOS to support
 include(PamplejuceMacOS)
 
+# The cmake-includes submodule defaults to 10.14, but the libc++ shipped with Xcode 27 no longer supports anything below macOS 11 and warns about it. Override here (must stay before project()).
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Support macOS down to Big Sur" FORCE)
+
 # Couple tweaks that IMO should be JUCE defaults
 include(JUCEDefaults)
 
