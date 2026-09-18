@@ -1,6 +1,18 @@
 #include "PluginProcessor.h"
 #include "../ui/PluginEditor.h"
 
+namespace
+{
+constexpr int parameterVersionHint { 1 };
+
+const juce::Identifier storedKnobsTreeType { "storedKnobs" };
+
+juce::Identifier storedKnobProperty (int algorithm, int knob)
+{
+    return { "a" + juce::String (algorithm) + "k" + juce::String (knob) };
+}
+} // namespace
+
 PluginProcessor::PluginProcessor() // NOLINT
 : AudioProcessor (BusesProperties()
 #if ! JucePlugin_IsMidiEffect
@@ -9,8 +21,119 @@ PluginProcessor::PluginProcessor() // NOLINT
 #endif
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-  )
+                      ),
+  apvts (*this, nullptr, "Parameters", createParameterLayout())
 {
+    algorithmParam = apvts.getRawParameterValue (algorithmParamId);
+
+    for (int knob = 0; knob < numKnobs; ++knob)
+        knobParams[static_cast<size_t> (knob)] = apvts.getRawParameterValue (knobParamId (knob));
+
+    // Seed every algorithm's remembered knob values with its defaults (unused slots stay at 0).
+    for (int algorithm = 0; algorithm < dsplay::numAlgorithms; ++algorithm)
+    {
+        const auto& descriptor = getAlgorithm (algorithm).getDescriptor();
+        auto&       values     = storedKnobs[static_cast<size_t> (algorithm)];
+
+        for (int knob = 0; knob < descriptor.numParameters; ++knob)
+            values[static_cast<size_t> (knob)] = descriptor.parameters[static_cast<size_t> (knob)].defaultNormalised();
+    }
+
+    lastSyncedAlgorithm = getSelectedAlgorithmIndex();
+    startTimer (knobSyncIntervalMs);
+}
+
+PluginProcessor::~PluginProcessor() { stopTimer(); }
+
+juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParameterLayout()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+    juce::StringArray algorithmNames;
+    for (const auto& algorithm : algorithms)
+        algorithmNames.add (algorithm->getDescriptor().name);
+
+    layout.add (
+        std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { algorithmParamId, parameterVersionHint },
+                                                      "Algorithm",
+                                                      algorithmNames,
+                                                      static_cast<int> (defaultAlgorithmIndex)));
+
+    const auto& defaultDescriptor = algorithms[static_cast<size_t> (defaultAlgorithmIndex)]->getDescriptor();
+
+    for (int knob = 0; knob < numKnobs; ++knob)
+    {
+        const auto defaultValue = knob < defaultDescriptor.numParameters
+                                      ? defaultDescriptor.parameters[static_cast<size_t> (knob)].defaultNormalised()
+                                      : 0.f;
+
+        const auto attributes = juce::AudioParameterFloatAttributes()
+                                    .withStringFromValueFunction ([this, knob] (float value, int)
+                                                                  { return knobValueToText (knob, value); })
+                                    .withValueFromStringFunction ([this, knob] (const juce::String& text)
+                                                                  { return knobTextToValue (knob, text); });
+
+        layout.add (
+            std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { knobParamId (knob), parameterVersionHint },
+                                                         "Knob " + juce::String (knob + 1),
+                                                         juce::NormalisableRange<float> { 0.f, 1.f },
+                                                         defaultValue,
+                                                         attributes));
+    }
+
+    return layout;
+}
+
+int PluginProcessor::getSelectedAlgorithmIndex() const noexcept
+{
+    const auto index = static_cast<int> (algorithmParam->load());
+    return std::clamp (index, 0, dsplay::numAlgorithms - 1);
+}
+
+const dsplay::AlgorithmDescriptor& PluginProcessor::getSelectedDescriptor() const noexcept
+{
+    return getAlgorithm (getSelectedAlgorithmIndex()).getDescriptor();
+}
+
+juce::String PluginProcessor::knobValueToText (int knob, float normalised) const
+{
+    const auto& descriptor = getSelectedDescriptor();
+
+    if (knob >= descriptor.numParameters)
+        return "-";
+
+    const auto& parameter = descriptor.parameters[static_cast<size_t> (knob)];
+    return juce::String (parameter.range.convertFrom0to1 (normalised), parameter.decimals) + parameter.suffix;
+}
+
+float PluginProcessor::knobTextToValue (int knob, const juce::String& text) const
+{
+    const auto& descriptor = getSelectedDescriptor();
+
+    if (knob >= descriptor.numParameters)
+        return 0.f;
+
+    const auto& parameter = descriptor.parameters[static_cast<size_t> (knob)];
+    const auto  value     = parameter.range.snapToLegalValue (text.trimStart().getFloatValue());
+    return parameter.range.convertTo0to1 (value);
+}
+
+void PluginProcessor::syncKnobsToSelectedAlgorithm()
+{
+    const auto selected = getSelectedAlgorithmIndex();
+
+    if (selected == lastSyncedAlgorithm)
+        return;
+
+    auto& previous = storedKnobs[static_cast<size_t> (lastSyncedAlgorithm)];
+    for (int knob = 0; knob < numKnobs; ++knob)
+        previous[static_cast<size_t> (knob)] = knobParams[static_cast<size_t> (knob)]->load();
+
+    const auto& next = storedKnobs[static_cast<size_t> (selected)];
+    for (int knob = 0; knob < numKnobs; ++knob)
+        apvts.getParameter (knobParamId (knob))->setValueNotifyingHost (next[static_cast<size_t> (knob)]);
+
+    lastSyncedAlgorithm = selected;
 }
 
 int PluginProcessor::getNumPrograms()
@@ -34,9 +157,15 @@ void PluginProcessor::changeProgramName (int index, const juce::String& newName)
     juce::ignoreUnused (index, newName);
 }
 
-void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)  // NOLINT
+void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) // NOLINT
 {
-    juce::ignoreUnused (sampleRate, samplesPerBlock);
+    const auto numChannels = std::max (getTotalNumInputChannels(), getTotalNumOutputChannels());
+
+    for (auto& algorithm : algorithms)
+        algorithm->prepare (sampleRate, samplesPerBlock, numChannels);
+
+    // Force a reset of whichever algorithm runs first.
+    activeAlgorithm = -1;
 }
 
 void PluginProcessor::releaseResources()
@@ -71,46 +200,77 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     juce::ignoreUnused (midiMessages);
 
     juce::ScopedNoDenormals noDenormals;
-    auto                    totalNumInputChannels  = getTotalNumInputChannels();
-    auto                    totalNumOutputChannels = getTotalNumOutputChannels();
+    const auto              totalNumInputChannels  = getTotalNumInputChannels();
+    const auto              totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
+    // Output channels without a matching input may contain garbage; clear them before processing.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    // Hard switch: the newly selected algorithm starts from a clean state.
+    const auto selected  = getSelectedAlgorithmIndex();
+    auto&      algorithm = *algorithms[static_cast<size_t> (selected)];
+
+    if (selected != activeAlgorithm)
     {
-        auto* channelData = buffer.getWritePointer (channel);
-        juce::ignoreUnused (channelData);
-        // ..do something to the data...
+        algorithm.reset();
+        activeAlgorithm = selected;
     }
+
+    // Map the generic 0..1 knobs onto the algorithm's real-world parameter ranges.
+    const auto& descriptor = algorithm.getDescriptor();
+
+    for (int knob = 0; knob < descriptor.numParameters; ++knob)
+    {
+        const auto normalised = knobParams[static_cast<size_t> (knob)]->load();
+        const auto value      = descriptor.parameters[static_cast<size_t> (knob)].range.convertFrom0to1 (normalised);
+        algorithm.setParameter (knob, value);
+    }
+
+    algorithm.process (buffer);
 }
 
-void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)  // NOLINT
+void PluginProcessor::getStateInformation (juce::MemoryBlock& destData) // NOLINT
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-    juce::ignoreUnused (destData);
+    // Make sure the remembered values for the current algorithm are up to date before saving.
+    auto& current = storedKnobs[static_cast<size_t> (lastSyncedAlgorithm)];
+    for (int knob = 0; knob < numKnobs; ++knob)
+        current[static_cast<size_t> (knob)] = knobParams[static_cast<size_t> (knob)]->load();
+
+    auto state  = apvts.copyState();
+    auto stored = state.getOrCreateChildWithName (storedKnobsTreeType, nullptr);
+
+    for (int algorithm = 0; algorithm < dsplay::numAlgorithms; ++algorithm)
+        for (int knob = 0; knob < numKnobs; ++knob)
+            stored.setProperty (storedKnobProperty (algorithm, knob),
+                                storedKnobs[static_cast<size_t> (algorithm)][static_cast<size_t> (knob)],
+                                nullptr);
+
+    if (const auto xml = state.createXml())
+        copyXmlToBinary (*xml, destData);
 }
 
 void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
-    juce::ignoreUnused (data, sizeInBytes);
+    const auto xml = getXmlFromBinary (data, sizeInBytes);
+
+    if (xml == nullptr || ! xml->hasTagName (apvts.state.getType()))
+        return;
+
+    apvts.replaceState (juce::ValueTree::fromXml (*xml));
+
+    const auto stored = apvts.state.getChildWithName (storedKnobsTreeType);
+
+    if (stored.isValid())
+        for (int algorithm = 0; algorithm < dsplay::numAlgorithms; ++algorithm)
+            for (int knob = 0; knob < numKnobs; ++knob)
+            {
+                auto& value = storedKnobs[static_cast<size_t> (algorithm)][static_cast<size_t> (knob)];
+                value       = stored.getProperty (storedKnobProperty (algorithm, knob), value);
+            }
+
+    lastSyncedAlgorithm = getSelectedAlgorithmIndex();
 }
 
-juce::AudioProcessorEditor*         PluginProcessor::createEditor() { return new PluginEditor (*this); } //NOLINT
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new PluginProcessor(); }               //NOLINT
+juce::AudioProcessorEditor*         PluginProcessor::createEditor() { return new PluginEditor (*this); } // NOLINT
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new PluginProcessor(); }               // NOLINT
