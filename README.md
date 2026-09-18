@@ -1,8 +1,8 @@
-[![Build](https://github.com/vberthiaume/dupe/actions/workflows/build_and_test.yml/badge.svg?branch=main)](https://github.com/vberthiaume/dupe/actions/workflows/build_and_test.yml)
+[![Build](https://github.com/vberthiaume/dsplay/actions/workflows/build_and_test.yml/badge.svg?branch=main)](https://github.com/vberthiaume/dsplay/actions/workflows/build_and_test.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-# Starty — JUCE plugin starter
-A starting point for a new JUCE audio-plugin project. Adds a CI sanitizer matrix (ASan, UBSan, TSan, RTSan), clang-tidy as a PR-comment bot, RTSan-aware attribute macros, and a clang-format pre-commit hook to the [Pamplejuce](https://github.com/sudara/pamplejuce) template. The placeholder plugin name is `Starty` — see [Rename](#rename-starty--your-plugin-name) for what to change when forking.
+# DSPlay
+A JUCE audio plugin built on the Starty starter template (itself derived from [Pamplejuce](https://github.com/sudara/pamplejuce)): CI sanitizer matrix (ASan, UBSan, TSan, RTSan), clang-tidy as a PR-comment bot, RTSan-aware attribute macros, and a clang-format pre-commit hook.
 
 ## Rename `Starty` → your plugin name
 Pick names. Example values for a hypothetical "Spangle" plugin by "Acme Audio":
@@ -125,7 +125,7 @@ To cut a release:
 The `v` prefix is required; a bare `0.1.0` tag won't trigger the release job.
 
 ## License
-Starty is released under the [GNU Affero General Public License, version 3](LICENSE) (AGPLv3). Copyright (C) 2026 Vincent Berthiaume.
+DSPlay is released under the [GNU Affero General Public License, version 3](LICENSE) (AGPLv3). Copyright (C) 2026 Vincent Berthiaume.
 
 This project links against [JUCE](https://juce.com/), used under the AGPLv3 free-use option of JUCE Ltd's dual-license terms.
 
