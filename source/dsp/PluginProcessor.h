@@ -73,7 +73,7 @@ public:
 
     // Index of the algorithm currently selected by the "algorithm" parameter.
     [[nodiscard]] int                      getSelectedAlgorithmIndex() const noexcept;
-    [[nodiscard]] const dsplay::Algorithm& getAlgorithm (int index) const
+    [[nodiscard]] const dsplay::Algorithm& getAlgorithm (const int index) const
     {
         return *algorithms[static_cast<size_t> (index)];
     }

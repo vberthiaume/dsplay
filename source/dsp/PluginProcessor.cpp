@@ -15,17 +15,11 @@ juce::Identifier storedKnobProperty (int algorithm, int knob)
 
 PluginProcessor::PluginProcessor() // NOLINT
 : AudioProcessor (BusesProperties()
-#if ! JucePlugin_IsMidiEffect
-#if ! JucePlugin_IsSynth
                       .withInput ("Input", juce::AudioChannelSet::stereo(), true)
-#endif
-                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-#endif
-                      ),
-  apvts (*this, nullptr, "Parameters", createParameterLayout())
+                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+  apvts { *this, nullptr, "Parameters", createParameterLayout() },
+  algorithmParam { apvts.getRawParameterValue (algorithmParamId) }
 {
-    algorithmParam = apvts.getRawParameterValue (algorithmParamId);
-
     for (int knob = 0; knob < numKnobs; ++knob)
         knobParams[static_cast<size_t> (knob)] = apvts.getRawParameterValue (knobParamId (knob));
 
