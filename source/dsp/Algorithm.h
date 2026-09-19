@@ -9,8 +9,7 @@ namespace dsplay
 // Every algorithm exposes at most this many parameters, one per rotary slider in the UI.
 constexpr int maxParameters { 5 };
 
-// Describes one algorithm parameter. The UI shows `name`, the host and the slider text box show the mapped value
-// formatted with `decimals` digits followed by `suffix` (e.g. "1200.0 Hz", "4.0:1").
+// Describes one algorithm parameter. The UI shows `name`, the host and the slider text box show the mapped value formatted with `decimals` digits followed by `suffix` (e.g. "1200.0 Hz", "4.0:1").
 struct ParameterDescriptor
 {
     const char*                    name { "" };

@@ -15,8 +15,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
     addAndMakeVisible (algorithmBox);
     algorithmAttachment = std::make_unique<ComboBoxAttachment> (apvts, PluginProcessor::algorithmParamId, algorithmBox);
 
-    // Knobs. The attachment installs the parameter's text conversion on the slider, so the text box shows the mapped
-    // value with units rather than the raw 0..1 position.
+    // Knobs. The attachment installs the parameter's text conversion on the slider, so the text box shows the mapped value with units rather than the raw 0..1 position.
     for (int i = 0; i < numKnobs; ++i)
     {
         const auto index  = static_cast<size_t> (i);
