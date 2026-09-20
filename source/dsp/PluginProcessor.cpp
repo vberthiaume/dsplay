@@ -130,16 +130,6 @@ void PluginProcessor::syncKnobsToSelectedAlgorithm()
     lastSyncedAlgorithm = selected;
 }
 
-int PluginProcessor::getNumPrograms()
-{
-    return 1; // NB: some hosts don't cope very well if you tell them there are 0 programs,
-              // so this should be at least 1, even if you're not really implementing programs.
-}
-
-int PluginProcessor::getCurrentProgram() { return 0; }
-
-void PluginProcessor::setCurrentProgram (int index) { juce::ignoreUnused (index); }
-
 const juce::String PluginProcessor::getProgramName (int index) // NOLINT
 {
     juce::ignoreUnused (index);

@@ -8,20 +8,20 @@ const AlgorithmDescriptor Compressor::descriptor {
     .parameters    = { {
         { .name = "Threshold", .range = { -60.f, 0.f }, .defaultValue = -20.f, .suffix = " dB", .decimals = 1 },
         { .name         = "Ratio",
-          .range        = makeSkewedRange (1.f, 20.f, 4.f),
-          .defaultValue = 4.f,
-          .suffix       = ":1",
-          .decimals     = 1 },
+             .range        = makeSkewedRange (1.f, 20.f, 4.f),
+             .defaultValue = 4.f,
+             .suffix       = ":1",
+             .decimals     = 1 },
         { .name         = "Attack",
-          .range        = makeSkewedRange (0.1f, 100.f, 10.f),
-          .defaultValue = 10.f,
-          .suffix       = " ms",
-          .decimals     = 1 },
+             .range        = makeSkewedRange (0.1f, 100.f, 10.f),
+             .defaultValue = 10.f,
+             .suffix       = " ms",
+             .decimals     = 1 },
         { .name         = "Release",
-          .range        = makeSkewedRange (5.f, 1000.f, 100.f),
-          .defaultValue = 100.f,
-          .suffix       = " ms",
-          .decimals     = 0 },
+             .range        = makeSkewedRange (5.f, 1000.f, 100.f),
+             .defaultValue = 100.f,
+             .suffix       = " ms",
+             .decimals     = 0 },
         { .name = "Makeup", .range = { 0.f, 24.f }, .defaultValue = 0.f, .suffix = " dB", .decimals = 1 },
     } },
 };
@@ -68,24 +68,6 @@ void Compressor::setParameter (int index, float value) noexcept
     }
 }
 
-float Compressor::computeGainReductionDb (float inputDb) const noexcept
-{
-    const auto overshoot = inputDb - thresholdDb;
-    const auto halfKnee  = kneeWidthDb * 0.5f;
-
-    if (overshoot <= -halfKnee)
-        return 0.f;
-
-    const auto slope = 1.f / ratioValue - 1.f; // negative: how much output drops per dB of overshoot
-
-    if (overshoot >= halfKnee)
-        return -slope * overshoot;
-
-    // Inside the knee: quadratic interpolation between the two straight segments.
-    const auto x = overshoot + halfKnee;
-    return -slope * x * x / (2.f * kneeWidthDb);
-}
-
 void Compressor::process (juce::AudioBuffer<float>& buffer) noexcept
 {
     const auto numSamples  = buffer.getNumSamples();
@@ -103,8 +85,26 @@ void Compressor::process (juce::AudioBuffer<float>& buffer) noexcept
         for (int ch = 0; ch < numChannels; ++ch)
             peak = std::max (peak, std::abs (data[ch][i]));
 
-        const auto inputDb  = juce::Decibels::gainToDecibels (peak, silenceDb);
-        const auto targetDb = computeGainReductionDb (inputDb);
+        const auto inputDb = juce::Decibels::gainToDecibels (peak, silenceDb);
+
+        //calculate gain reduction
+        const auto targetDb = [this, inputDb]()
+        {
+            const auto overshoot = inputDb - thresholdDb;
+            const auto halfKnee  = kneeWidthDb * 0.5f;
+
+            if (overshoot <= -halfKnee)
+                return 0.f;
+
+            const auto slope = 1.f / ratioValue - 1.f; // negative: how much output drops per dB of overshoot
+
+            if (overshoot >= halfKnee)
+                return -slope * overshoot;
+
+            // Inside the knee: quadratic interpolation between the two straight segments.
+            const auto x = overshoot + halfKnee;
+            return -slope * x * x / (2.f * kneeWidthDb);
+        }();
 
         // Ballistics in the log domain: attack when reduction grows, release when it shrinks.
         const auto coeff = targetDb > gainReductionDb ? attackCoeff : releaseCoeff;

@@ -60,9 +60,9 @@ public:
 
     double getTailLengthSeconds() const override { return 0.0; }
 
-    int                getNumPrograms() override;
-    int                getCurrentProgram() override;
-    void               setCurrentProgram (int index) override;
+    int                getNumPrograms() override { return 1; }
+    int                getCurrentProgram() override { return 0; }
+    void               setCurrentProgram (int index) override { juce::ignoreUnused (index); }
     const juce::String getProgramName (int index) override; // NOLINT
     void               changeProgramName (int index, const juce::String& newName) override;
 

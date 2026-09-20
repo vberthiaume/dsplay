@@ -30,9 +30,6 @@ public:
     void process (juce::AudioBuffer<float>& buffer) noexcept RTSAN_NONBLOCKING override;
 
 private:
-    // Static gain computer: returns the gain reduction in dB (>= 0) for an input level in dB.
-    [[nodiscard]] float computeGainReductionDb (float inputDb) const noexcept;
-
     static const AlgorithmDescriptor descriptor;
     static constexpr double          smoothingSeconds { 0.05 };
     static constexpr float           silenceDb { -120.f };
