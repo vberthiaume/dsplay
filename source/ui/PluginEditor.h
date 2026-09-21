@@ -4,45 +4,42 @@
 #include "melatonin_inspector/melatonin_inspector.h"
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
-class PluginEditor : public juce::AudioProcessorEditor,
-                     private juce::AudioProcessorValueTreeState::Listener,
-                     private juce::AsyncUpdater
+class PluginEditor : public juce::AudioProcessorEditor
 {
 public:
     static constexpr auto width { 620 };
     static constexpr auto height { 260 };
     static constexpr auto fontSize { 16.f };
-    static constexpr int  numKnobs { PluginProcessor::numKnobs };
+    static constexpr auto numKnobs { PluginProcessor::numKnobs };
 
     // Component IDs, so tests (and the inspector) can find the controls.
-    static juce::String knobSliderId (int index) { return "knobSlider" + juce::String (index + 1); }
-    static juce::String knobLabelId (int index) { return "knobLabel" + juce::String (index + 1); }
+    static constexpr const char* algorithmBoxId { "algorithmBox" };
+    static juce::String          knobSliderId (std::size_t index) { return "knobSlider" + juce::String (index + 1); }
+    static juce::String          knobLabelId (std::size_t index) { return "knobLabel" + juce::String (index + 1); }
 
     explicit PluginEditor (PluginProcessor&);
-    ~PluginEditor() override;
+    ~PluginEditor() override = default;
 
     void paint (juce::Graphics& g) override;
     void resized() override;
 
 private:
-    void parameterChanged (const juce::String& parameterID, float newValue) override;
-    void handleAsyncUpdate() override { updateKnobsForSelectedAlgorithm(); }
+    struct Knob
+    {
+        juce::Slider slider;
+        juce::Label  label;
+    };
 
-    // Relabels the knobs and enables/disables them to match the selected algorithm's descriptor.
+    // Configures every knob (range, skew, suffix, label, enabled state, current value) from the selected algorithm's
+    // descriptor. Called on construction and whenever the combo box changes.
     void updateKnobsForSelectedAlgorithm();
-
-    using SliderAttachment   = juce::AudioProcessorValueTreeState::SliderAttachment;
-    using ComboBoxAttachment = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
 
     PluginProcessor& processorRef;
 
-    juce::Label                         algorithmLabel { {}, "Algorithm" };
-    juce::ComboBox                      algorithmBox;
-    std::unique_ptr<ComboBoxAttachment> algorithmAttachment;
+    juce::Label    algorithmLabel { {}, "Algorithm" };
+    juce::ComboBox algorithmBox;
 
-    std::array<juce::Slider, numKnobs>                      knobSliders;
-    std::array<juce::Label, numKnobs>                       knobLabels;
-    std::array<std::unique_ptr<SliderAttachment>, numKnobs> knobAttachments;
+    std::array<Knob, numKnobs> knobs;
 
     std::unique_ptr<melatonin::Inspector> inspector;
     juce::TextButton                      inspectButton { "Inspect" };

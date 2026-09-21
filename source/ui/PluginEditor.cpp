@@ -3,36 +3,36 @@
 // NOLINTNEXTLINE
 PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), processorRef (p)
 {
-    auto& apvts = processorRef.getValueTreeState();
-
-    // Algorithm selector. Items must be added before the attachment so it can select the current one.
     algorithmLabel.setJustificationType (juce::Justification::centredRight);
     addAndMakeVisible (algorithmLabel);
 
+    algorithmBox.setComponentID (algorithmBoxId);
     for (int i = 0; i < dsplay::numAlgorithms; ++i)
         algorithmBox.addItem (processorRef.getAlgorithm (i).getDescriptor().name, i + 1);
 
-    addAndMakeVisible (algorithmBox);
-    algorithmAttachment = std::make_unique<ComboBoxAttachment> (apvts, PluginProcessor::algorithmParamId, algorithmBox);
-
-    // Knobs. The attachment installs the parameter's text conversion on the slider, so the text box shows the mapped value with units rather than the raw 0..1 position.
-    for (int i = 0; i < numKnobs; ++i)
+    algorithmBox.setSelectedItemIndex (processorRef.getSelectedAlgorithmIndex(), juce::dontSendNotification);
+    algorithmBox.onChange = [this]
     {
-        const auto index  = static_cast<size_t> (i);
-        auto&      slider = knobSliders[index];
-        auto&      label  = knobLabels[index];
+        processorRef.setSelectedAlgorithm (algorithmBox.getSelectedItemIndex());
+        updateKnobsForSelectedAlgorithm();
+    };
+    addAndMakeVisible (algorithmBox);
+
+    for (std::size_t i = 0; i < numKnobs; ++i)
+    {
+        auto& [slider, label] = knobs[i];
 
         slider.setComponentID (knobSliderId (i));
         slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 90, 20);
+        slider.onValueChange
+            = [this, i] { processorRef.setKnobValue (i, static_cast<float> (knobs[i].slider.getValue())); };
         addAndMakeVisible (slider);
 
         label.setComponentID (knobLabelId (i));
         label.setJustificationType (juce::Justification::centred);
         label.setFont (juce::FontOptions { fontSize });
         addAndMakeVisible (label);
-
-        knobAttachments[index] = std::make_unique<SliderAttachment> (apvts, PluginProcessor::knobParamId (i), slider);
     }
 
     addAndMakeVisible (inspectButton);
@@ -48,40 +48,44 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
     };
 
     updateKnobsForSelectedAlgorithm();
-    apvts.addParameterListener (PluginProcessor::algorithmParamId, this);
-
     setSize (width, height);
-}
-
-PluginEditor::~PluginEditor()
-{
-    processorRef.getValueTreeState().removeParameterListener (PluginProcessor::algorithmParamId, this);
-    cancelPendingUpdate();
-}
-
-void PluginEditor::parameterChanged (const juce::String& parameterID, float newValue)
-{
-    juce::ignoreUnused (parameterID, newValue);
-
-    // Parameter changes can arrive from any thread; only touch components on the message thread.
-    if (juce::MessageManager::getInstance()->isThisTheMessageThread())
-        updateKnobsForSelectedAlgorithm();
-    else
-        triggerAsyncUpdate();
 }
 
 void PluginEditor::updateKnobsForSelectedAlgorithm()
 {
     const auto& descriptor = processorRef.getSelectedDescriptor();
 
-    for (int i = 0; i < numKnobs; ++i)
+    for (std::size_t i = 0; i < numKnobs; ++i)
     {
-        const auto index = static_cast<size_t> (i);
-        const auto used  = i < descriptor.numParameters;
+        auto& [slider, label] = knobs[i];
+        const auto used       = i < descriptor.numParameters;
 
-        knobLabels[index].setText (used ? descriptor.parameters[index].name : "", juce::dontSendNotification);
-        knobSliders[index].setEnabled (used);
-        knobSliders[index].updateText();
+        if (! used)
+        {
+            label.setText ("", juce::dontSendNotification);
+            slider.setEnabled (false);
+            slider.textFromValueFunction = [] (double) { return juce::String ("-"); };
+            slider.updateText();
+            continue;
+        }
+
+        const auto& parameter = descriptor.parameters[i];
+
+        label.setText (parameter.name, juce::dontSendNotification);
+        slider.setEnabled (true);
+        slider.textFromValueFunction = nullptr;
+        slider.setRange (parameter.min, parameter.max);
+
+        if (parameter.skewCentre > 0.f)
+            slider.setSkewFactorFromMidPoint (parameter.skewCentre);
+        else
+            slider.setSkewFactor (1.0);
+
+        slider.setTextValueSuffix (parameter.suffix);
+        slider.setNumDecimalPlacesToDisplay (parameter.decimals);
+
+        // Each algorithm keeps its own values, so switching back restores where the knobs were.
+        slider.setValue (processorRef.getKnobValue (i), juce::dontSendNotification);
     }
 }
 
@@ -115,14 +119,12 @@ void PluginEditor::resized()
     area.removeFromBottom (footerH);
     area.removeFromTop (margin);
 
-    const auto knobW = area.getWidth() / numKnobs;
+    const auto knobW = area.getWidth() / static_cast<int> (numKnobs);
 
-    for (int i = 0; i < numKnobs; ++i)
+    for (auto& [slider, label] : knobs)
     {
-        const auto index = static_cast<size_t> (i);
-        auto       cell  = area.removeFromLeft (knobW);
-
-        knobLabels[index].setBounds (cell.removeFromTop (labelH));
-        knobSliders[index].setBounds (cell);
+        auto cell = area.removeFromLeft (knobW);
+        label.setBounds (cell.removeFromTop (labelH));
+        slider.setBounds (cell);
     }
 }
