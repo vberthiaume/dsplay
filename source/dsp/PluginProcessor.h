@@ -4,21 +4,8 @@
 
 #include "../util/RealtimeAttributes.h"
 
-//TODO: is this the best spot for this?
 #include "algorithms/LowPassFilter.h"
 #include "algorithms/Compressor.h"
-
-namespace dsplay
-{
-// The list of algorithms available in the playground
-constexpr int numAlgorithms { 2 };
-
-inline std::array<std::unique_ptr<Algorithm>, numAlgorithms> createAlgorithms()
-{
-    // The order here is the order in the combo box and the index stored in the "algorithm" parameter, so append new algorithms at the end to keep saved sessions valid.
-    return { std::make_unique<LowPassFilter>(), std::make_unique<Compressor>() };
-}
-} // namespace dsplay
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class PluginProcessor : public juce::AudioProcessor
@@ -84,6 +71,8 @@ public:
     void              setSelectedAlgorithm (int index) noexcept;
     [[nodiscard]] int getSelectedAlgorithmIndex() const noexcept { return selectedAlgorithm.load(); }
 
+    [[nodiscard]] int getNumAlgorithms() const noexcept { return static_cast<int> (algorithms.size()); }
+
     [[nodiscard]] const dsplay::Algorithm& getAlgorithm (int index) const
     {
         return *algorithms[static_cast<std::size_t> (index)];
@@ -97,7 +86,12 @@ public:
     [[nodiscard]] float getKnobValue (std::size_t knob) const noexcept;
 
 private:
-    std::array<std::unique_ptr<dsplay::Algorithm>, dsplay::numAlgorithms> algorithms { dsplay::createAlgorithms() };
+    // The algorithms available in the playground. To add one: a member here, an entry in `algorithms` (its order is the
+    // combo box order) and bump the array size.
+    dsplay::LowPassFilter lowPassFilter;
+    dsplay::Compressor    compressor;
+
+    std::array<dsplay::Algorithm*, 2> algorithms { &lowPassFilter, &compressor };
 
     std::atomic<int> selectedAlgorithm { 0 };
 

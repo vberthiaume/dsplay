@@ -12,12 +12,10 @@ constexpr double sampleRate { 44100.0 };
 constexpr int    blockSize { 512 };
 constexpr int    numChannels { 2 };
 
-int algorithmIndexOf (const char* name)
+int algorithmIndexOf (const PluginProcessor& plugin, const char* name)
 {
-    const auto algorithms = dsplay::createAlgorithms();
-
-    for (int i = 0; i < dsplay::numAlgorithms; ++i)
-        if (juce::String (algorithms[static_cast<std::size_t> (i)]->getDescriptor().name) == name)
+    for (int i = 0; i < plugin.getNumAlgorithms(); ++i)
+        if (juce::String (plugin.getAlgorithm (i).getDescriptor().name) == name)
             return i;
 
     FAIL ("No algorithm named " << name);
@@ -83,9 +81,12 @@ float steadyStateRms (PluginProcessor& plugin,
 
 TEST_CASE ("Algorithm descriptors are well-formed", "[algorithms]")
 {
-    for (const auto& algorithm : dsplay::createAlgorithms())
+    const PluginProcessor plugin;
+
+    for (int index = 0; index < plugin.getNumAlgorithms(); ++index)
     {
-        const auto& descriptor = algorithm->getDescriptor();
+        const auto& algorithm  = plugin.getAlgorithm (index);
+        const auto& descriptor = algorithm.getDescriptor();
         INFO ("Algorithm: " << descriptor.name);
 
         CHECK (juce::String (descriptor.name).isNotEmpty());
@@ -109,7 +110,7 @@ TEST_CASE ("Algorithm descriptors are well-formed", "[algorithms]")
             }
 
             // The atomics start at the descriptor defaults.
-            CHECK (algorithm->getParameter (i) == Catch::Approx (parameter.defaultValue));
+            CHECK (algorithm.getParameter (i) == Catch::Approx (parameter.defaultValue));
         }
     }
 }
@@ -138,8 +139,8 @@ TEST_CASE ("Editor relabels knobs when the algorithm changes", "[editor][algorit
                 return slider->isEnabled();
             };
 
-            const auto lpf        = algorithmIndexOf ("Low-pass filter");
-            const auto compressor = algorithmIndexOf ("Compressor");
+            const auto lpf        = algorithmIndexOf (plugin, "Low-pass filter");
+            const auto compressor = algorithmIndexOf (plugin, "Compressor");
 
             comboBox->setSelectedItemIndex (lpf, juce::sendNotificationSync);
             CHECK (plugin.getSelectedAlgorithmIndex() == lpf);
@@ -168,7 +169,7 @@ TEST_CASE ("Low-pass filter attenuates high frequencies and passes low ones", "[
 
     PluginProcessor plugin;
     plugin.prepareToPlay (sampleRate, blockSize);
-    plugin.setSelectedAlgorithm (algorithmIndexOf ("Low-pass filter"));
+    plugin.setSelectedAlgorithm (algorithmIndexOf (plugin, "Low-pass filter"));
 
     constexpr auto cutoffHz            = 200.f;
     constexpr auto resonanceQ          = 0.707f;
@@ -198,7 +199,7 @@ TEST_CASE ("Compressor reduces loud signals and leaves quiet ones alone", "[algo
 
     PluginProcessor plugin;
     plugin.prepareToPlay (sampleRate, blockSize);
-    plugin.setSelectedAlgorithm (algorithmIndexOf ("Compressor"));
+    plugin.setSelectedAlgorithm (algorithmIndexOf (plugin, "Compressor"));
 
     constexpr auto thresholdDb    = -30.f;
     constexpr auto ratio          = 20.f;
@@ -243,7 +244,7 @@ TEST_CASE ("Switching algorithms while processing is realtime-safe", "[algorithm
 
     for (int block = 0; block < numBlocks; ++block)
     {
-        plugin.setSelectedAlgorithm (block % dsplay::numAlgorithms);
+        plugin.setSelectedAlgorithm (block % plugin.getNumAlgorithms());
         fillSine (buffer, toneHz, amplitude, phase);
         plugin.processBlock (buffer, midi);
 

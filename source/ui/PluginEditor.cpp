@@ -8,7 +8,7 @@ PluginEditor::PluginEditor (PluginProcessor& processorToUse)
     addAndMakeVisible (algorithmLabel);
 
     algorithmSelector.setComponentID (algorithmBoxId);
-    for (int i = 0; i < dsplay::numAlgorithms; ++i)
+    for (int i = 0; i < processorRef.getNumAlgorithms(); ++i)
         algorithmSelector.addItem (processorRef.getAlgorithm (i).getDescriptor().name, i + 1);
 
     algorithmSelector.setSelectedItemIndex (processorRef.getSelectedAlgorithmIndex(), juce::dontSendNotification);

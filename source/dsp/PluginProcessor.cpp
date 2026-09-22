@@ -15,7 +15,7 @@ PluginProcessor::PluginProcessor() // NOLINT
 
 void PluginProcessor::setSelectedAlgorithm (int index) noexcept
 {
-    selectedAlgorithm.store (std::clamp (index, 0, dsplay::numAlgorithms - 1));
+    selectedAlgorithm.store (std::clamp (index, 0, getNumAlgorithms() - 1));
 }
 
 void PluginProcessor::setKnobValue (std::size_t knob, float value) noexcept
@@ -28,10 +28,7 @@ float PluginProcessor::getKnobValue (std::size_t knob) const noexcept
     return getAlgorithm (getSelectedAlgorithmIndex()).getParameter (knob);
 }
 
-int PluginProcessor::getNumPrograms()
-{
-    return 1;
-}
+int PluginProcessor::getNumPrograms() { return 1; }
 
 int PluginProcessor::getCurrentProgram() { return 0; }
 
@@ -56,7 +53,7 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) // 
         .numChannels = static_cast<juce::uint32> (std::max (getTotalNumInputChannels(), getTotalNumOutputChannels())),
     };
 
-    for (auto& algorithm : algorithms)
+    for (auto* algorithm : algorithms)
         algorithm->prepare (spec);
 
     // Force a reset of whichever algorithm runs first.
