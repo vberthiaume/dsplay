@@ -36,6 +36,18 @@ PluginEditor::PluginEditor (PluginProcessor& processorToUse)
         addAndMakeVisible (label);
     }
 
+    bypassButton.setComponentID (bypassButtonId);
+    bypassButton.setToggleState (processorRef.isBypassed(), juce::dontSendNotification);
+    bypassButton.onClick = [this] { processorRef.setBypassed (bypassButton.getToggleState()); };
+    addAndMakeVisible (bypassButton);
+
+    loopButton.setComponentID (loopButtonId);
+    loopButton.setClickingTogglesState (true);
+    loopButton.setToggleState (processorRef.isLoopEnabled(), juce::dontSendNotification);
+    loopButton.onClick = [this] { processorRef.setLoopEnabled (loopButton.getToggleState()); };
+    addAndMakeVisible (loopButton);
+
+#if JUCE_DEBUG
     addAndMakeVisible (inspectButton);
     inspectButton.onClick = [&]
     {
@@ -47,6 +59,7 @@ PluginEditor::PluginEditor (PluginProcessor& processorToUse)
 
         inspector->setVisible (true);
     };
+#endif
 
     updateKnobsForSelectedAlgorithm();
     setSize (width, height);
@@ -102,19 +115,24 @@ void PluginEditor::paint (juce::Graphics& g)
 
 void PluginEditor::resized()
 {
-    constexpr auto headerH  = 30;
-    constexpr auto footerH  = 30;
-    constexpr auto labelH   = 20;
-    constexpr auto labelW   = 80;
-    constexpr auto comboW   = 200;
-    constexpr auto inspectW = 80;
+    constexpr auto headerH = 30;
+    constexpr auto footerH = 30;
+    constexpr auto labelH  = 20;
+    constexpr auto labelW  = 80;
+    constexpr auto comboW  = 200;
+    constexpr auto buttonW = 80;
 
     auto area = getLocalBounds().reduced (margin);
 
     auto header = area.removeFromTop (headerH);
     algorithmLabel.setBounds (header.removeFromLeft (labelW));
     algorithmSelector.setBounds (header.removeFromLeft (comboW).reduced (0, 2));
-    inspectButton.setBounds (header.removeFromRight (inspectW).reduced (0, 2));
+    header.removeFromLeft (margin);
+    bypassButton.setBounds (header.removeFromLeft (buttonW));
+    loopButton.setBounds (header.removeFromRight (buttonW).reduced (0, 2));
+#if JUCE_DEBUG
+    inspectButton.setBounds (header.removeFromRight (buttonW).reduced (0, 2));
+#endif
 
     area.removeFromBottom (footerH);
     area.removeFromTop (margin);

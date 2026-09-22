@@ -1,6 +1,9 @@
 #include "PluginProcessor.h"
 #include "../ui/PluginEditor.h"
 
+#include <BinaryData.h>
+#include <juce_audio_formats/juce_audio_formats.h>
+
 PluginProcessor::PluginProcessor() // NOLINT
 : AudioProcessor (BusesProperties()
 #if ! JucePlugin_IsMidiEffect
@@ -58,6 +61,38 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) // 
 
     // Force a reset of whichever algorithm runs first.
     activeAlgorithm = -1;
+
+    loadLoop (sampleRate);
+}
+
+void PluginProcessor::loadLoop (double sampleRate)
+{
+    juce::WavAudioFormat wav;
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): createReaderFor() takes ownership of the stream.
+    auto* stream = new juce::MemoryInputStream (BinaryData::drum_loop_wav, BinaryData::drum_loop_wavSize, false);
+    auto  reader = std::unique_ptr<juce::AudioFormatReader> (wav.createReaderFor (stream, true));
+
+    juce::AudioBuffer<float> file (static_cast<int> (reader->numChannels), static_cast<int> (reader->lengthInSamples));
+    reader->read (&file, 0, file.getNumSamples(), 0, true, true);
+
+    // The interpolator's speed ratio is input samples consumed per output sample.
+    const auto               ratio = reader->sampleRate / sampleRate;
+    juce::AudioBuffer<float> resampled (file.getNumChannels(), static_cast<int> (file.getNumSamples() / ratio));
+
+    for (int ch = 0; ch < file.getNumChannels(); ++ch)
+        juce::LagrangeInterpolator().process (
+            ratio, file.getReadPointer (ch), resampled.getWritePointer (ch), resampled.getNumSamples());
+
+    loopSource.emplace (resampled, true, true);
+}
+
+bool PluginProcessor::isHostPlaying() const noexcept
+{
+    if (auto* playHead = getPlayHead())
+        if (const auto position = playHead->getPosition())
+            return position->getIsPlaying();
+
+    return false;
 }
 
 void PluginProcessor::releaseResources()
@@ -98,6 +133,17 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     // Output channels without a matching input may contain garbage; clear them before processing.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
+
+    // Standalone has no transport, so the loop plays whenever it's enabled. In a DAW the host's audio takes over while its transport runs.
+    if (loopSource && loopEnabled.load() && ! isHostPlaying())
+        loopSource->getNextAudioBlock (juce::AudioSourceChannelInfo (buffer));
+
+    // While bypassed, forget the active algorithm so the reset below gives it a clean start once bypass is lifted.
+    if (bypassed.load())
+    {
+        activeAlgorithm = -1;
+        return;
+    }
 
     // Hard switch: the newly selected algorithm starts from a clean state.
     const auto selected  = getSelectedAlgorithmIndex();

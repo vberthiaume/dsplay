@@ -1,7 +1,10 @@
 #pragma once
 
 #include "../dsp/PluginProcessor.h"
+
+#if JUCE_DEBUG
 #include "melatonin_inspector/melatonin_inspector.h"
+#endif
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class PluginEditor : public juce::AudioProcessorEditor
@@ -14,6 +17,8 @@ public:
 
     // Component IDs, so tests (and the inspector) can find the controls.
     static constexpr const char* algorithmBoxId { "algorithmSelector" };
+    static constexpr const char* loopButtonId { "loopButton" };
+    static constexpr const char* bypassButtonId { "bypassButton" };
     static juce::String          knobSliderId (std::size_t index) { return "knobSlider" + juce::String (index + 1); }
     static juce::String          knobLabelId (std::size_t index) { return "knobLabel" + juce::String (index + 1); }
 
@@ -46,8 +51,13 @@ private:
 
     std::array<Knob, numKnobs> knobs;
 
+    juce::ToggleButton bypassButton { "Bypass" };
+    juce::TextButton   loopButton { "Play loop" };
+
+#if JUCE_DEBUG
     std::unique_ptr<melatonin::Inspector> inspector;
     juce::TextButton                      inspectButton { "Inspect" };
+#endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginEditor)
 };
