@@ -17,13 +17,19 @@ public:
     static juce::String          knobSliderId (std::size_t index) { return "knobSlider" + juce::String (index + 1); }
     static juce::String          knobLabelId (std::size_t index) { return "knobLabel" + juce::String (index + 1); }
 
-    explicit PluginEditor (PluginProcessor&);
+    explicit PluginEditor (PluginProcessor& processorToUse);
     ~PluginEditor() override = default;
 
     void paint (juce::Graphics& g) override;
     void resized() override;
 
 private:
+    static constexpr int   margin { 10 };
+    static constexpr int   textBoxWidth { 90 };
+    static constexpr int   textBoxHeight { 20 };
+    static constexpr float footerAlpha { 0.6f };
+    static constexpr float footerFontScale { 0.75f };
+
     struct Knob
     {
         juce::Slider slider;

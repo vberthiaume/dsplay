@@ -6,20 +6,24 @@ const AlgorithmDescriptor LowPassFilter::descriptor {
     .name          = "Low-pass filter",
     .numParameters = std::to_underlying (Parameter::count),
     .parameters    = { {
-        { .name         = "Cutoff",
-          .min          = 20.f,
-          .max          = 20000.f,
-          .skewCentre   = 1000.f,
-          .defaultValue = 1000.f,
-          .suffix       = " Hz",
-          .decimals     = 0, },
-        { .name         = "Resonance",
-          .min          = 0.5f,
-          .max          = 10.f,
-          .skewCentre   = 2.f,
-          .defaultValue = 0.707f,
-          .suffix       = " Q",
-          .decimals     = 2, },
+        {
+            .name         = "Cutoff",
+            .min          = 20.f,
+            .max          = 20000.f,
+            .skewCentre   = 1000.f,
+            .defaultValue = 1000.f,
+            .suffix       = " Hz",
+            .decimals     = 0,
+        },
+        {
+            .name         = "Resonance",
+            .min          = 0.5f,
+            .max          = 10.f,
+            .skewCentre   = 2.f,
+            .defaultValue = 0.707f,
+            .suffix       = " Q",
+            .decimals     = 2,
+        },
         { .name = "Gain", .min = -24.f, .max = 24.f, .defaultValue = 0.f, .suffix = " dB", .decimals = 1 },
     } },
 };
@@ -73,6 +77,9 @@ void LowPassFilter::process (const juce::dsp::ProcessContextReplacing<float>& co
         auto* data  = block.getChannelPointer (ch);
         auto& state = channels[ch];
 
+        // Trapezoidal integrator state update: ic[n+1] = 2 * v[n] - ic[n].
+        constexpr auto two = 2.f;
+
         for (int i = 0; i < numSamples; ++i)
         {
             const auto v0 = data[i];
@@ -80,8 +87,8 @@ void LowPassFilter::process (const juce::dsp::ProcessContextReplacing<float>& co
             const auto v1 = a1 * state.ic1eq + a2 * v3;
             const auto v2 = state.ic2eq + a2 * state.ic1eq + a3 * v3;
 
-            state.ic1eq = 2.f * v1 - state.ic1eq;
-            state.ic2eq = 2.f * v2 - state.ic2eq;
+            state.ic1eq = two * v1 - state.ic1eq;
+            state.ic2eq = two * v2 - state.ic2eq;
 
             data[i] = v2;
         }

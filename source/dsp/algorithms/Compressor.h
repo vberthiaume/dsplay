@@ -21,6 +21,8 @@ public:
     };
 
     static constexpr float kneeWidthDb { 6.f };
+    static constexpr float halfKneeWidthDb { kneeWidthDb / 2.f };
+    static constexpr float kneeCurvature { 1.f / (2.f * kneeWidthDb) }; // coefficient of the quadratic knee segment
 
     Compressor() : Algorithm (descriptor) {}
 

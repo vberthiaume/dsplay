@@ -170,18 +170,26 @@ TEST_CASE ("Low-pass filter attenuates high frequencies and passes low ones", "[
     plugin.prepareToPlay (sampleRate, blockSize);
     plugin.setSelectedAlgorithm (algorithmIndexOf ("Low-pass filter"));
 
-    setKnob (plugin, Parameter::cutoff, 200.f);
-    setKnob (plugin, Parameter::resonance, 0.707f);
-    setKnob (plugin, Parameter::gain, 0.f);
+    constexpr auto cutoffHz            = 200.f;
+    constexpr auto resonanceQ          = 0.707f;
+    constexpr auto gainDb              = 0.f;
+    constexpr auto amplitude           = 0.5f;
+    constexpr auto stopbandFrequencyHz = 10000.f; // five and a half octaves above cutoff
+    constexpr auto passbandFrequencyHz = 20.f;
+    constexpr auto maxStopbandLeakage  = 0.01f; // > 40 dB of attenuation at 12 dB/oct
+    constexpr auto passbandTolerance   = 0.05;
 
-    constexpr auto amplitude = 0.5f;
-    const auto     inputRms  = amplitude / juce::MathConstants<float>::sqrt2;
+    setKnob (plugin, Parameter::cutoff, cutoffHz);
+    setKnob (plugin, Parameter::resonance, resonanceQ);
+    setKnob (plugin, Parameter::gain, gainDb);
 
-    const auto highRms = steadyStateRms (plugin, 10000.f, amplitude);
-    CHECK (highRms < inputRms * 0.01f); // > 40 dB down, five and a half octaves above cutoff at 12 dB/oct
+    const auto inputRms = amplitude / juce::MathConstants<float>::sqrt2;
 
-    const auto lowRms = steadyStateRms (plugin, 20.f, amplitude);
-    CHECK (lowRms == Catch::Approx (inputRms).epsilon (0.05));
+    const auto highRms = steadyStateRms (plugin, stopbandFrequencyHz, amplitude);
+    CHECK (highRms < inputRms * maxStopbandLeakage);
+
+    const auto lowRms = steadyStateRms (plugin, passbandFrequencyHz, amplitude);
+    CHECK (lowRms == Catch::Approx (inputRms).epsilon (passbandTolerance));
 }
 
 TEST_CASE ("Compressor reduces loud signals and leaves quiet ones alone", "[algorithms][dsp]")
@@ -192,22 +200,32 @@ TEST_CASE ("Compressor reduces loud signals and leaves quiet ones alone", "[algo
     plugin.prepareToPlay (sampleRate, blockSize);
     plugin.setSelectedAlgorithm (algorithmIndexOf ("Compressor"));
 
-    setKnob (plugin, Parameter::threshold, -30.f);
-    setKnob (plugin, Parameter::ratio, 20.f);
-    setKnob (plugin, Parameter::attack, 1.f);
-    setKnob (plugin, Parameter::release, 50.f);
-    setKnob (plugin, Parameter::makeup, 0.f);
+    constexpr auto thresholdDb    = -30.f;
+    constexpr auto ratio          = 20.f;
+    constexpr auto attackMs       = 1.f;
+    constexpr auto releaseMs      = 50.f;
+    constexpr auto makeupDb       = 0.f;
+    constexpr auto toneHz         = 1000.f;
+    constexpr auto loudAmplitude  = 1.f;   // 0 dBFS, 30 dB over threshold
+    constexpr auto minReductionDb = -20.f; // 30 dB over at 20:1 leaves ~1.5 dB, so ~28 dB of reduction
+    constexpr auto quietLevelDb   = -50.f; // 20 dB under threshold
+    constexpr auto quietTolerance = 0.02;
 
-    const auto loudAmplitude = 1.f;
-    const auto loudInputRms  = loudAmplitude / juce::MathConstants<float>::sqrt2;
-    const auto loudRms       = steadyStateRms (plugin, 1000.f, loudAmplitude);
-    const auto reductionDb   = juce::Decibels::gainToDecibels (loudRms / loudInputRms);
-    CHECK (reductionDb < -20.f); // 30 dB over threshold at 20:1 leaves ~1.5 dB, so ~28 dB of reduction
+    setKnob (plugin, Parameter::threshold, thresholdDb);
+    setKnob (plugin, Parameter::ratio, ratio);
+    setKnob (plugin, Parameter::attack, attackMs);
+    setKnob (plugin, Parameter::release, releaseMs);
+    setKnob (plugin, Parameter::makeup, makeupDb);
 
-    const auto quietAmplitude = juce::Decibels::decibelsToGain (-50.f);
+    const auto loudInputRms = loudAmplitude / juce::MathConstants<float>::sqrt2;
+    const auto loudRms      = steadyStateRms (plugin, toneHz, loudAmplitude);
+    const auto reductionDb  = juce::Decibels::gainToDecibels (loudRms / loudInputRms);
+    CHECK (reductionDb < minReductionDb);
+
+    const auto quietAmplitude = juce::Decibels::decibelsToGain (quietLevelDb);
     const auto quietInputRms  = quietAmplitude / juce::MathConstants<float>::sqrt2;
-    const auto quietRms       = steadyStateRms (plugin, 1000.f, quietAmplitude);
-    CHECK (quietRms == Catch::Approx (quietInputRms).epsilon (0.02));
+    const auto quietRms       = steadyStateRms (plugin, toneHz, quietAmplitude);
+    CHECK (quietRms == Catch::Approx (quietInputRms).epsilon (quietTolerance));
 }
 
 TEST_CASE ("Switching algorithms while processing is realtime-safe", "[algorithms][rtsan]")
@@ -219,10 +237,14 @@ TEST_CASE ("Switching algorithms while processing is realtime-safe", "[algorithm
     juce::MidiBuffer         midi;
     double                   phase { 0.0 };
 
-    for (int block = 0; block < 20; ++block)
+    constexpr auto numBlocks = 20;
+    constexpr auto toneHz    = 440.f;
+    constexpr auto amplitude = 0.5f;
+
+    for (int block = 0; block < numBlocks; ++block)
     {
         plugin.setSelectedAlgorithm (block % dsplay::numAlgorithms);
-        fillSine (buffer, 440.f, 0.5f, phase);
+        fillSine (buffer, toneHz, amplitude, phase);
         plugin.processBlock (buffer, midi);
 
         for (int ch = 0; ch < numChannels; ++ch)

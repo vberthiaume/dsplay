@@ -55,19 +55,18 @@ float Compressor::timeToCoefficient (float milliseconds) const noexcept
 float Compressor::computeGainReductionDb (float inputDb) const noexcept
 {
     const auto overshoot = inputDb - thresholdDb;
-    const auto halfKnee  = kneeWidthDb / 2.f;
 
-    if (overshoot <= -halfKnee)
+    if (overshoot <= -halfKneeWidthDb)
         return 0.f;
 
     const auto slope = 1.f / ratio - 1.f; // negative: how much output drops per dB of overshoot
 
-    if (overshoot >= halfKnee)
+    if (overshoot >= halfKneeWidthDb)
         return -slope * overshoot;
 
     // Inside the knee: quadratic interpolation between the two straight segments.
-    const auto x = overshoot + halfKnee;
-    return -slope * x * x / (2.f * kneeWidthDb);
+    const auto x = overshoot + halfKneeWidthDb;
+    return -slope * x * x * kneeCurvature;
 }
 
 void Compressor::process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept

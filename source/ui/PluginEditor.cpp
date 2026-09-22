@@ -1,7 +1,8 @@
 #include "PluginEditor.h"
 
 // NOLINTNEXTLINE
-PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), processorRef (p)
+PluginEditor::PluginEditor (PluginProcessor& processorToUse)
+: AudioProcessorEditor (&processorToUse), processorRef (processorToUse)
 {
     algorithmLabel.setJustificationType (juce::Justification::centredRight);
     addAndMakeVisible (algorithmLabel);
@@ -24,7 +25,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
 
         slider.setComponentID (knobSliderId (i));
         slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
-        slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 90, 20);
+        slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, textBoxWidth, textBoxHeight);
         slider.onValueChange
             = [this, i] { processorRef.setKnobValue (i, static_cast<float> (knobs[i].slider.getValue())); };
         addAndMakeVisible (slider);
@@ -93,15 +94,14 @@ void PluginEditor::paint (juce::Graphics& g)
 {
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
-    g.setColour (juce::Colours::white.withAlpha (0.6f));
-    g.setFont (juce::FontOptions { fontSize * 0.75f });
+    g.setColour (juce::Colours::white.withAlpha (footerAlpha));
+    g.setFont (juce::FontOptions { fontSize * footerFontScale });
     const auto footer = juce::String() + PRODUCT_NAME_WITHOUT_VERSION + " v" VERSION + " (" + CMAKE_BUILD_TYPE + ")";
-    g.drawText (footer, getLocalBounds().reduced (10), juce::Justification::bottomLeft, false);
+    g.drawText (footer, getLocalBounds().reduced (margin), juce::Justification::bottomLeft, false);
 }
 
 void PluginEditor::resized()
 {
-    constexpr auto margin   = 10;
     constexpr auto headerH  = 30;
     constexpr auto footerH  = 30;
     constexpr auto labelH   = 20;
