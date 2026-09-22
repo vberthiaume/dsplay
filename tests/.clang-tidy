@@ -1,0 +1,7 @@
+# Tests inherit the project configuration but drop two checks that don't fit test code:
+# - Catch2's TEST_CASE/CHECK macros expand to branches, so cognitive complexity is meaningless here.
+# - Test helpers legitimately take adjacent numeric parameters (frequency, amplitude, seconds).
+InheritParentConfig: true
+Checks: >
+  -readability-function-cognitive-complexity,
+  -bugprone-easily-swappable-parameters

@@ -1,14 +1,42 @@
 #include "PluginEditor.h"
-#include "BinaryData.h"
 
 // NOLINTNEXTLINE
-PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), processorRef (p)
+PluginEditor::PluginEditor (PluginProcessor& processorToUse)
+: AudioProcessorEditor (&processorToUse), processorRef (processorToUse)
 {
-    juce::ignoreUnused (processorRef);
+    algorithmLabel.setJustificationType (juce::Justification::centredRight);
+    addAndMakeVisible (algorithmLabel);
+
+    algorithmSelector.setComponentID (algorithmBoxId);
+    for (int i = 0; i < processorRef.getNumAlgorithms(); ++i)
+        algorithmSelector.addItem (processorRef.getAlgorithm (i).getDescriptor().name, i + 1);
+
+    algorithmSelector.setSelectedItemIndex (processorRef.getSelectedAlgorithmIndex(), juce::dontSendNotification);
+    algorithmSelector.onChange = [this]
+    {
+        processorRef.setSelectedAlgorithm (algorithmSelector.getSelectedItemIndex());
+        updateKnobsForSelectedAlgorithm();
+    };
+    addAndMakeVisible (algorithmSelector);
+
+    for (std::size_t i = 0; i < numKnobs; ++i)
+    {
+        auto& [slider, label] = knobs[i];
+
+        slider.setComponentID (knobSliderId (i));
+        slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
+        slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, textBoxWidth, textBoxHeight);
+        slider.onValueChange
+            = [this, i] { processorRef.setKnobValue (i, static_cast<float> (knobs[i].slider.getValue())); };
+        addAndMakeVisible (slider);
+
+        label.setComponentID (knobLabelId (i));
+        label.setJustificationType (juce::Justification::centred);
+        label.setFont (juce::FontOptions { fontSize });
+        addAndMakeVisible (label);
+    }
 
     addAndMakeVisible (inspectButton);
-
-    // this chunk of code instantiates and opens the melatonin inspector
     inspectButton.onClick = [&]
     {
         if (! inspector)
@@ -20,29 +48,83 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
         inspector->setVisible (true);
     };
 
+    updateKnobsForSelectedAlgorithm();
     setSize (width, height);
+}
+
+void PluginEditor::updateKnobsForSelectedAlgorithm()
+{
+    const auto& descriptor = processorRef.getSelectedDescriptor();
+
+    for (std::size_t i = 0; i < numKnobs; ++i)
+    {
+        auto& [slider, label] = knobs[i];
+        const auto used       = i < descriptor.numParameters;
+
+        if (! used)
+        {
+            label.setText ("", juce::dontSendNotification);
+            slider.setEnabled (false);
+            slider.textFromValueFunction = [] (double) { return juce::String ("-"); };
+            slider.updateText();
+            continue;
+        }
+
+        const auto& parameter = descriptor.parameters[i];
+
+        label.setText (parameter.name, juce::dontSendNotification);
+        slider.setEnabled (true);
+        slider.textFromValueFunction = nullptr;
+        slider.setRange (parameter.min, parameter.max);
+
+        if (parameter.skewCentre > 0.f)
+            slider.setSkewFactorFromMidPoint (parameter.skewCentre);
+        else
+            slider.setSkewFactor (1.0);
+
+        slider.setTextValueSuffix (parameter.suffix);
+        slider.setNumDecimalPlacesToDisplay (parameter.decimals);
+
+        // Each algorithm keeps its own values, so switching back restores where the knobs were.
+        slider.setValue (processorRef.getKnobValue (i), juce::dontSendNotification);
+    }
 }
 
 void PluginEditor::paint (juce::Graphics& g)
 {
-    const auto bg = juce::ImageCache::getFromMemory (BinaryData::background_jpg, BinaryData::background_jpgSize);
-    g.drawImage (bg, getLocalBounds().toFloat());
+    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
-    auto area = getLocalBounds();
-    g.setColour (juce::Colours::white);
-    g.setFont (fontSize);
-    const auto helloWorld = juce::String() + PRODUCT_NAME_WITHOUT_VERSION + " v" VERSION + " in " + CMAKE_BUILD_TYPE;
-    const auto textHeight { 150 };
-    g.drawText (helloWorld, area.removeFromTop (textHeight), juce::Justification::centred, false);
+    g.setColour (juce::Colours::white.withAlpha (footerAlpha));
+    g.setFont (juce::FontOptions { fontSize * footerFontScale });
+    const auto footer = juce::String() + PRODUCT_NAME_WITHOUT_VERSION + " v" VERSION + " (" + CMAKE_BUILD_TYPE + ")";
+    g.drawText (footer, getLocalBounds().reduced (margin), juce::Justification::bottomLeft, false);
 }
 
 void PluginEditor::resized()
 {
-    // layout the positions of your child components here
-    auto       area = getLocalBounds();
-    const auto buffer { 50 };
-    area.removeFromBottom (buffer);
-    const auto buttonW { 100 };
-    const auto buttonH { 50 };
-    inspectButton.setBounds (getLocalBounds().withSizeKeepingCentre (buttonW, buttonH));
+    constexpr auto headerH  = 30;
+    constexpr auto footerH  = 30;
+    constexpr auto labelH   = 20;
+    constexpr auto labelW   = 80;
+    constexpr auto comboW   = 200;
+    constexpr auto inspectW = 80;
+
+    auto area = getLocalBounds().reduced (margin);
+
+    auto header = area.removeFromTop (headerH);
+    algorithmLabel.setBounds (header.removeFromLeft (labelW));
+    algorithmSelector.setBounds (header.removeFromLeft (comboW).reduced (0, 2));
+    inspectButton.setBounds (header.removeFromRight (inspectW).reduced (0, 2));
+
+    area.removeFromBottom (footerH);
+    area.removeFromTop (margin);
+
+    const auto knobW = area.getWidth() / static_cast<int> (numKnobs);
+
+    for (auto& [slider, label] : knobs)
+    {
+        auto cell = area.removeFromLeft (knobW);
+        label.setBounds (cell.removeFromTop (labelH));
+        slider.setBounds (cell);
+    }
 }
