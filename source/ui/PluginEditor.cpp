@@ -6,17 +6,17 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
     algorithmLabel.setJustificationType (juce::Justification::centredRight);
     addAndMakeVisible (algorithmLabel);
 
-    algorithmBox.setComponentID (algorithmBoxId);
+    algorithmSelector.setComponentID (algorithmBoxId);
     for (int i = 0; i < dsplay::numAlgorithms; ++i)
-        algorithmBox.addItem (processorRef.getAlgorithm (i).getDescriptor().name, i + 1);
+        algorithmSelector.addItem (processorRef.getAlgorithm (i).getDescriptor().name, i + 1);
 
-    algorithmBox.setSelectedItemIndex (processorRef.getSelectedAlgorithmIndex(), juce::dontSendNotification);
-    algorithmBox.onChange = [this]
+    algorithmSelector.setSelectedItemIndex (processorRef.getSelectedAlgorithmIndex(), juce::dontSendNotification);
+    algorithmSelector.onChange = [this]
     {
-        processorRef.setSelectedAlgorithm (algorithmBox.getSelectedItemIndex());
+        processorRef.setSelectedAlgorithm (algorithmSelector.getSelectedItemIndex());
         updateKnobsForSelectedAlgorithm();
     };
-    addAndMakeVisible (algorithmBox);
+    addAndMakeVisible (algorithmSelector);
 
     for (std::size_t i = 0; i < numKnobs; ++i)
     {
@@ -113,7 +113,7 @@ void PluginEditor::resized()
 
     auto header = area.removeFromTop (headerH);
     algorithmLabel.setBounds (header.removeFromLeft (labelW));
-    algorithmBox.setBounds (header.removeFromLeft (comboW).reduced (0, 2));
+    algorithmSelector.setBounds (header.removeFromLeft (comboW).reduced (0, 2));
     inspectButton.setBounds (header.removeFromRight (inspectW).reduced (0, 2));
 
     area.removeFromBottom (footerH);

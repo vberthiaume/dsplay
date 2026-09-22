@@ -12,14 +12,14 @@ const AlgorithmDescriptor LowPassFilter::descriptor {
           .skewCentre   = 1000.f,
           .defaultValue = 1000.f,
           .suffix       = " Hz",
-          .decimals     = 0 },
+          .decimals     = 0, },
         { .name         = "Resonance",
           .min          = 0.5f,
           .max          = 10.f,
           .skewCentre   = 2.f,
           .defaultValue = 0.707f,
           .suffix       = " Q",
-          .decimals     = 2 },
+          .decimals     = 2, },
         { .name = "Gain", .min = -24.f, .max = 24.f, .defaultValue = 0.f, .suffix = " dB", .decimals = 1 },
     } },
 };
@@ -57,8 +57,7 @@ void LowPassFilter::process (const juce::dsp::ProcessContextReplacing<float>& co
     smoothedResonance.setTargetValue (getParameter (Parameter::resonance));
     smoothedGain.setTargetValue (juce::Decibels::decibelsToGain (getParameter (Parameter::gain)));
 
-    // Per-block coefficient update. skip() advances the smoothers by a whole block so the ramp time stays in seconds
-    // regardless of block size.
+    // Per-block coefficient update. skip() advances the smoothers by a whole block so the ramp time stays in seconds regardless of block size.
     const auto maxCutoff = static_cast<float> (sampleRate * 0.49);
     const auto fc        = std::min (smoothedCutoff.skip (numSamples), maxCutoff);
     const auto q         = smoothedResonance.skip (numSamples);

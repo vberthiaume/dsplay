@@ -80,8 +80,7 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    // The UI talks to the processor only through these. The selected algorithm and its knob values are atomics, so
-    // they can be set from the message thread while processBlock reads them.
+    // The UI talks to the processor only through these. The selected algorithm and its knob values are atomics, so they can be set from the message thread while processBlock reads them.
     void              setSelectedAlgorithm (int index) noexcept;
     [[nodiscard]] int getSelectedAlgorithmIndex() const noexcept { return selectedAlgorithm.load(); }
 

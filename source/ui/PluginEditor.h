@@ -13,7 +13,7 @@ public:
     static constexpr auto numKnobs { PluginProcessor::numKnobs };
 
     // Component IDs, so tests (and the inspector) can find the controls.
-    static constexpr const char* algorithmBoxId { "algorithmBox" };
+    static constexpr const char* algorithmBoxId { "algorithmSelector" };
     static juce::String          knobSliderId (std::size_t index) { return "knobSlider" + juce::String (index + 1); }
     static juce::String          knobLabelId (std::size_t index) { return "knobLabel" + juce::String (index + 1); }
 
@@ -30,14 +30,13 @@ private:
         juce::Label  label;
     };
 
-    // Configures every knob (range, skew, suffix, label, enabled state, current value) from the selected algorithm's
-    // descriptor. Called on construction and whenever the combo box changes.
+    // Configures every knob (range, skew, suffix, label, enabled state, current value) from the selected algorithm's descriptor. Called on construction and whenever the combo box changes.
     void updateKnobsForSelectedAlgorithm();
 
     PluginProcessor& processorRef;
 
     juce::Label    algorithmLabel { {}, "Algorithm" };
-    juce::ComboBox algorithmBox;
+    juce::ComboBox algorithmSelector;
 
     std::array<Knob, numKnobs> knobs;
 
