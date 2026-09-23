@@ -69,8 +69,8 @@ void PluginProcessor::loadLoop (double sampleRate)
 {
     juce::WavAudioFormat wav;
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): createReaderFor() takes ownership of the stream.
-    auto* stream = new juce::MemoryInputStream (BinaryData::drum_loop_wav, BinaryData::drum_loop_wavSize, false);
-    auto  reader = std::unique_ptr<juce::AudioFormatReader> (wav.createReaderFor (stream, true));
+    auto* stream { new juce::MemoryInputStream (BinaryData::drum_loop_wav, BinaryData::drum_loop_wavSize, false) };
+    auto  reader { std::unique_ptr<juce::AudioFormatReader> (wav.createReaderFor (stream, true)) };
 
     juce::AudioBuffer<float> file (static_cast<int> (reader->numChannels), static_cast<int> (reader->lengthInSamples));
     reader->read (&file, 0, file.getNumSamples(), 0, true, true);
@@ -88,7 +88,7 @@ void PluginProcessor::loadLoop (double sampleRate)
 
 bool PluginProcessor::isHostPlaying() const noexcept
 {
-    if (auto* playHead = getPlayHead())
+    if (const auto* playHead = getPlayHead())
         if (const auto position = playHead->getPosition())
             return position->getIsPlaying();
 

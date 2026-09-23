@@ -89,7 +89,10 @@ public:
     void               setLoopEnabled (bool shouldPlay) noexcept { loopEnabled.store (shouldPlay); }
     [[nodiscard]] bool isLoopEnabled() const noexcept { return loopEnabled.load(); }
 
-    [[nodiscard]] juce::int64 getLoopLengthInSamples() const noexcept { return loopSource->getTotalLength(); }
+    [[nodiscard]] juce::int64 getLoopLengthInSamples() const noexcept
+    {
+        return loopSource ? loopSource->getTotalLength() : 0;
+    }
 
     // Bypass skips the selected algorithm entirely; the loop (if enabled) still plays.
     void               setBypassed (bool shouldBypass) noexcept { bypassed.store (shouldBypass); }
