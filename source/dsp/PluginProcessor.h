@@ -85,6 +85,19 @@ public:
     void                setKnobValue (std::size_t knob, float value) noexcept;
     [[nodiscard]] float getKnobValue (std::size_t knob) const noexcept;
 
+    // The bundled drum loop replaces the input while enabled, unless the host transport is running (see processBlock).
+    void               setLoopEnabled (bool shouldPlay) noexcept { loopEnabled.store (shouldPlay); }
+    [[nodiscard]] bool isLoopEnabled() const noexcept { return loopEnabled.load(); }
+
+    [[nodiscard]] juce::int64 getLoopLengthInSamples() const noexcept
+    {
+        return loopSource ? loopSource->getTotalLength() : 0;
+    }
+
+    // Bypass skips the selected algorithm entirely; the loop (if enabled) still plays.
+    void               setBypassed (bool shouldBypass) noexcept { bypassed.store (shouldBypass); }
+    [[nodiscard]] bool isBypassed() const noexcept { return bypassed.load(); }
+
 private:
     // The algorithms available in the playground. To add one: a member here, an entry in `algorithms` (its order is the
     // combo box order) and bump the array size.
@@ -97,6 +110,15 @@ private:
 
     // Audio thread only: which algorithm processed the previous block, to detect switches.
     int activeAlgorithm { -1 };
+
+    // Decodes the bundled drum loop and resamples it to the device rate so processBlock() streams it with a plain copy.
+    void loadLoop (double sampleRate);
+
+    [[nodiscard]] bool isHostPlaying() const noexcept;
+
+    std::optional<juce::MemoryAudioSource> loopSource;
+    std::atomic<bool>                      loopEnabled { false };
+    std::atomic<bool>                      bypassed { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };

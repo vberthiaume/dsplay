@@ -94,7 +94,7 @@ Uses `.clang-format` with Allman-style braces, 4-space indentation, and a 120-co
 
 All code you write — including comments — must conform to `.clang-format`. The repo has a pre-commit hook that rejects unformatted C/C++ files, so don't expect a later auto-fix step to clean up. Match the surrounding style (alignment of consecutive declarations/assignments, brace placement, parameter wrapping) on the first pass.
 
-Hard-wrap comments at column 120 too. clang-format has `ReflowComments: false`, so it won't reformat them automatically — write them at the right width up front.
+Comments are exempt from the column limit: write each comment as a single long line and let the IDE soft-wrap it. clang-format has `ReflowComments: false`, so it never touches them, and clang-tidy has no line-length check.
 
 ## Workflow
 
