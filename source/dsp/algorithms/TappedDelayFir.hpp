@@ -24,6 +24,10 @@ private:
     double                           sampleRate { defaultSampleRate };
     static const AlgorithmDescriptor descriptor;
 
+    static constexpr auto      tapSize { 5 };
+    int                        curTap { 0 };
+    std::array<float, tapSize> tap { 0.f };
+
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedGain;
 };
 } // namespace dsplay
