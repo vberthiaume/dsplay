@@ -4,9 +4,7 @@
 
 namespace dsplay
 {
-// Feed-forward compressor with a stereo-linked peak detector, soft knee, and log-domain attack/release smoothing of the
-// gain reduction. Follows the design in Giannoulis, Massberg & Reiss, "Digital Dynamic Range Compressor Design - A
-// Tutorial and Analysis" (JAES 2012).
+// Feed-forward compressor with a stereo-linked peak detector, soft knee, and log-domain attack/release smoothing of the gain reduction. Follows the design in Giannoulis, Massberg & Reiss, "Digital Dynamic Range Compressor Design - A Tutorial and Analysis" (JAES 2012).
 class Compressor final : public Algorithm
 {
 public:
@@ -31,8 +29,7 @@ public:
     void process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept RTSAN_NONBLOCKING override;
 
 private:
-    // Static gain computer: returns the gain reduction in dB (>= 0) for an input level in dB, using the threshold and
-    // ratio captured for the current block.
+    // Static gain computer: returns the gain reduction in dB (>= 0) for an input level in dB, using the threshold and ratio captured for the current block.
     [[nodiscard]] float computeGainReductionDb (float inputDb) const noexcept;
 
     // One-pole coefficient for a time constant given in milliseconds.
