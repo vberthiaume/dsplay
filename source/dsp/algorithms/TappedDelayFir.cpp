@@ -13,6 +13,7 @@ const AlgorithmDescriptor TappedDelayFir::descriptor {
 void TappedDelayFir::prepare (const juce::dsp::ProcessSpec& spec)
 {
     sampleRate = spec.sampleRate;
+    smoothedGain.reset (sampleRate, smoothingSeconds);
     reset();
 }
 
@@ -24,12 +25,14 @@ void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& c
     const auto numSamples  = block.getNumSamples();
     const auto numChannels = block.getNumChannels();
 
+    smoothedGain.setTargetValue (juce::Decibels::decibelsToGain (getParameter (Parameter::gain)));
+
     if (numChannels == 0)
         return;
 
     for (std::size_t i = 0; i < numSamples; ++i)
     {
-        const auto gainLinear = juce::Decibels::decibelsToGain (-gainReductionDb) * smoothedMakeupGain.getNextValue();
+        const auto gainLinear = smoothedGain.getNextValue();
 
         for (std::size_t ch = 0; ch < numChannels; ++ch)
             block.getChannelPointer (ch)[i] *= gainLinear;

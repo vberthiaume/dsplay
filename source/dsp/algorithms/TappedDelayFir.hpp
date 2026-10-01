@@ -23,5 +23,7 @@ private:
     static constexpr double          defaultSampleRate { 44100.0 };
     double                           sampleRate { defaultSampleRate };
     static const AlgorithmDescriptor descriptor;
+
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedGain;
 };
 } // namespace dsplay

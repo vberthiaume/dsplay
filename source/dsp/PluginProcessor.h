@@ -6,6 +6,7 @@
 
 #include "algorithms/LowPassFilter.h"
 #include "algorithms/Compressor.h"
+#include "algorithms/TappedDelayFir.hpp"
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class PluginProcessor : public juce::AudioProcessor
@@ -29,32 +30,11 @@ public:
 
     const juce::String getName() const override { return JucePlugin_Name; }
 
-    bool acceptsMidi() const override
-    {
-#if JucePlugin_WantsMidiInput
-        return true;
-#else
-        return false;
-#endif
-    }
+    bool acceptsMidi() const override { return false; }
 
-    bool producesMidi() const override
-    {
-#if JucePlugin_ProducesMidiOutput
-        return true;
-#else
-        return false;
-#endif
-    }
+    bool producesMidi() const override { return false; }
 
-    bool isMidiEffect() const override
-    {
-#if JucePlugin_IsMidiEffect
-        return true;
-#else
-        return false;
-#endif
-    }
+    bool isMidiEffect() const override { return false; }
 
     double getTailLengthSeconds() const override { return 0.0; }
 
@@ -99,14 +79,14 @@ public:
     [[nodiscard]] bool isBypassed() const noexcept { return bypassed.load(); }
 
 private:
-    // The algorithms available in the playground. To add one: a member here, an entry in `algorithms` (its order is the
-    // combo box order) and bump the array size.
-    dsplay::LowPassFilter lowPassFilter;
-    dsplay::Compressor    compressor;
+    // The algorithms available in the playground. To add one: a member here, an entry in `algorithms` (its order is the combo box order) and bump the array size.
+    dsplay::LowPassFilter  lowPassFilter;
+    dsplay::Compressor     compressor;
+    dsplay::TappedDelayFir tappedDelayFir;
 
-    std::array<dsplay::Algorithm*, 2> algorithms { &lowPassFilter, &compressor };
+    std::array<dsplay::Algorithm*, 3> algorithms { &lowPassFilter, &compressor, &tappedDelayFir };
 
-    std::atomic<int> selectedAlgorithm { 0 };
+    std::atomic<int> selectedAlgorithm { 2 };
 
     // Audio thread only: which algorithm processed the previous block, to detect switches.
     int activeAlgorithm { -1 };

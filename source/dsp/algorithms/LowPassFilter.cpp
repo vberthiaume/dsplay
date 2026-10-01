@@ -25,7 +25,7 @@ const AlgorithmDescriptor LowPassFilter::descriptor {
             .decimals     = 2,
         },
         { .name = "Gain", .min = -24.f, .max = 24.f, .defaultValue = 0.f, .suffix = " dB", .decimals = 1 },
-    } },
+    }, },
 };
 
 void LowPassFilter::prepare (const juce::dsp::ProcessSpec& spec)

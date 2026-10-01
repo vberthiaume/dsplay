@@ -36,9 +36,6 @@ private:
     [[nodiscard]] float timeToCoefficient (float milliseconds) const noexcept;
 
     static const AlgorithmDescriptor descriptor;
-    static constexpr double          smoothingSeconds { 0.05 };
-    static constexpr double          defaultSampleRate { 44100.0 };
-    static constexpr float           silenceDb { -120.f };
 
     double sampleRate { defaultSampleRate };
 

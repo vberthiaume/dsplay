@@ -8,6 +8,9 @@ namespace dsplay
 {
 // Every algorithm exposes at most this many parameters, one per rotary slider in the UI.
 constexpr std::size_t maxParameters { 5 };
+constexpr double      smoothingSeconds { 0.05 };
+constexpr double      defaultSampleRate { 44100.0 };
+constexpr float       silenceDb { -120.f };
 
 // Describes one algorithm parameter in real-world units. The UI configures a slider from it: `min`/`max` become the
 // range, a non-zero `skewCentre` is the value shown at the slider's midpoint (log-like sweep for Hz and ms), and the
