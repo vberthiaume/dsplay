@@ -20,7 +20,7 @@ public:
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
-    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
+    bool isBusesLayoutSupported (const BusesLayout& /*layouts*/) const override { return true; }
 
     void processBlock (juce::AudioBuffer<float>& buffer,
                        juce::MidiBuffer&         midiMessages) noexcept RTSAN_NONBLOCKING override;

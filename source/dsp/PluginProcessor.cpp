@@ -100,28 +100,6 @@ void PluginProcessor::releaseResources()
     // When playback stops, you can use this as an opportunity to free up any spare memory, etc.
 }
 
-bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
-{
-#if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
-    return true;
-#else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
-    // This checks if the input layout matches the output layout
-#if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-#endif
-
-    return true;
-#endif
-}
-
 void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) noexcept
 {
     juce::ignoreUnused (midiMessages);
@@ -138,6 +116,7 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     if (loopSource && loopEnabled.load() && ! isHostPlaying())
         loopSource->getNextAudioBlock (juce::AudioSourceChannelInfo (buffer));
 
+    //NOW HERE WE NEED TO RAMP THIS
     // While bypassed, forget the active algorithm so the reset below gives it a clean start once bypass is lifted.
     if (bypassed.load())
     {
