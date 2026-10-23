@@ -97,7 +97,7 @@ private:
     [[nodiscard]] bool isHostPlaying() const noexcept;
 
     std::optional<juce::MemoryAudioSource> loopSource;
-    std::atomic<bool>                      loopEnabled { false };
+    std::atomic<bool>                      loopEnabled { true };
     std::atomic<bool>                      bypassed { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
