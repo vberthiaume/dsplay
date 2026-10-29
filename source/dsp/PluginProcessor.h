@@ -38,11 +38,11 @@ public:
 
     double getTailLengthSeconds() const override { return 0.0; }
 
-    int                getNumPrograms() override;
-    int                getCurrentProgram() override;
-    void               setCurrentProgram (int index) override;
-    const juce::String getProgramName (int index) override; // NOLINT
-    void               changeProgramName (int index, const juce::String& newName) override;
+    int                getNumPrograms() override  { return 1; }
+    int                getCurrentProgram() override { return 0; }
+    void               setCurrentProgram (int index) override { juce::ignoreUnused (index); }
+    const juce::String getProgramName (int index) override { juce::ignoreUnused (index); return {}; } // NOLINT
+    void               changeProgramName (int index, const juce::String& newName) override { juce::ignoreUnused (index, newName); } //NOLINT
 
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;

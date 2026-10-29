@@ -6,13 +6,8 @@
 
 PluginProcessor::PluginProcessor() // NOLINT
 : AudioProcessor (BusesProperties()
-#if ! JucePlugin_IsMidiEffect
-#if ! JucePlugin_IsSynth
                       .withInput ("Input", juce::AudioChannelSet::stereo(), true)
-#endif
-                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-#endif
-  )
+                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
 {
 }
 
@@ -29,23 +24,6 @@ void PluginProcessor::setKnobValue (std::size_t knob, float value) noexcept
 float PluginProcessor::getKnobValue (std::size_t knob) const noexcept
 {
     return getAlgorithm (getSelectedAlgorithmIndex()).getParameter (knob);
-}
-
-int PluginProcessor::getNumPrograms() { return 1; }
-
-int PluginProcessor::getCurrentProgram() { return 0; }
-
-void PluginProcessor::setCurrentProgram (int index) { juce::ignoreUnused (index); }
-
-const juce::String PluginProcessor::getProgramName (int index) // NOLINT
-{
-    juce::ignoreUnused (index);
-    return {};
-}
-
-void PluginProcessor::changeProgramName (int index, const juce::String& newName) // NOLINT
-{
-    juce::ignoreUnused (index, newName);
 }
 
 void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) // NOLINT
