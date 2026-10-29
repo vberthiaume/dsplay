@@ -116,6 +116,17 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     algorithm.process (juce::dsp::ProcessContextReplacing<float> (block));
 }
 
+const juce::String PluginProcessor::getProgramName (int index)
+{
+    juce::ignoreUnused (index);
+    return {};
+}
+
+void PluginProcessor::changeProgramName (int index, const juce::String& newName) //NOLINT
+{
+    juce::ignoreUnused (index, newName);
+}
+
 void PluginProcessor::getStateInformation (juce::MemoryBlock& destData) // NOLINT
 {
     // Deliberately empty: this is a standalone playground, nothing is persisted between runs.
@@ -125,7 +136,7 @@ void PluginProcessor::getStateInformation (juce::MemoryBlock& destData) // NOLIN
 void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // Deliberately empty, see getStateInformation().
-        juce::ignoreUnused (data, sizeInBytes);
+    juce::ignoreUnused (data, sizeInBytes);
 }
 
 juce::AudioProcessorEditor*         PluginProcessor::createEditor() { return new PluginEditor (*this); } // NOLINT
