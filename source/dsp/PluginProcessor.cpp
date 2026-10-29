@@ -125,7 +125,7 @@ void PluginProcessor::getStateInformation (juce::MemoryBlock& destData) // NOLIN
 void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // Deliberately empty, see getStateInformation().
-    juce::ignoreUnused (data, sizeInBytes);
+        juce::ignoreUnused (data, sizeInBytes);
 }
 
 juce::AudioProcessorEditor*         PluginProcessor::createEditor() { return new PluginEditor (*this); } // NOLINT
