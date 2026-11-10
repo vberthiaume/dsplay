@@ -24,7 +24,7 @@ void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& c
     auto&      block       = context.getOutputBlock();
     const auto numSamples  = block.getNumSamples();
     const auto numChannels = block.getNumChannels();
-    jassert (numSamples == numTapChannels);
+    jassert (numChannels == numTapChannels);
 
     smoothedGain.setTargetValue (juce::Decibels::decibelsToGain (getParameter (Parameter::gain)));
 
@@ -39,13 +39,14 @@ void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& c
         //for each channel
         for (std::size_t ch = 0; ch < numChannels; ++ch)
         {
-            //unclear why this doesn't work
-            //SampleType* curSample { block.getChannelPointer (ch)[i] };
+            //get a reference to our current sample
+            auto& curSample = block.getChannelPointer (ch)[i];
+
             //do the filtering. So essentially we need to fill the tap array then the next sample will be the average of the array
-            tap[ch][curTap] = block.getChannelPointer (ch)[i];
+            tap.at (ch).at (curTap) = curSample;
 
             //apply the gain
-            block.getChannelPointer (ch)[i] *= gainLinear;
+            curSample *= gainLinear;
         }
     }
 }
