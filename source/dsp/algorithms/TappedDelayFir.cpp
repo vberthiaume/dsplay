@@ -42,8 +42,16 @@ void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& c
             //get a reference to our current sample
             auto& curSample = block.getChannelPointer (ch)[i];
 
-            //do the filtering. So essentially we need to fill the tap array then the next sample will be the average of the array
-            tap.at (ch).at (curTap) = curSample;
+            //do the filtering. So essentially we need to
+            //- fill the tap array
+            //- then once filled the next sample will be the average of the array
+            //- and after that we need to roll the average forward, unclear what the most efficient way of doing that is
+            //ah, the order doesn't matter right, so we can just modulo and always replace the curTap sample?
+            //aight so this is filtering alright, but sounds like shite lol. LFG BROOOO
+            tap.at (ch).at (i % tapSize) = curSample;
+            curSample                    = 0.f;
+            for (int t = 0; t < tapSize; ++t)
+                curSample += tap.at (ch).at (curTap) / tapSize;
 
             //apply the gain
             curSample *= gainLinear;
