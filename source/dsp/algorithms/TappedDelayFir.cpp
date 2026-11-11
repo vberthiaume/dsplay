@@ -7,7 +7,7 @@ const AlgorithmDescriptor TappedDelayFir::descriptor {
     .numParameters = std::to_underlying (Parameter::count),
     .parameters    = { {
         { .name = "Gain", .min = 0.f, .max = 24.f, .defaultValue = 0.f, .suffix = " dB", .decimals = 1 },
-    } },
+    }, },
 };
 
 void TappedDelayFir::prepare (const juce::dsp::ProcessSpec& spec)
@@ -17,7 +17,13 @@ void TappedDelayFir::prepare (const juce::dsp::ProcessSpec& spec)
     reset();
 }
 
-void TappedDelayFir::reset() noexcept {}
+void TappedDelayFir::reset() noexcept
+{
+    for (auto& channelTap : tap)
+        channelTap.fill (0.f);
+
+    curTap = 0;
+}
 
 void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept
 {
@@ -43,16 +49,18 @@ void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& c
             auto& curSample = block.getChannelPointer (ch)[i];
 
             //add current sample value to the tap
-            tap.at (ch).at (i % tapSize) = curSample;
+            tap.at (ch).at (curTap) = curSample;
 
             //calculate filtered sample value from the current tap
             curSample = 0.f;
-            for (int t = 0; t < tapSize; ++t)
-                curSample += tap.at (ch).at (curTap) / tapSize;
+            for (std::size_t t = 0; t < tapSize; ++t)
+                curSample += tap.at (ch).at (t) / tapSize;
 
             //apply the gain
             curSample *= gainLinear;
         }
+
+        curTap = (curTap + 1) % tapSize;
     }
 }
 } // namespace dsplay
