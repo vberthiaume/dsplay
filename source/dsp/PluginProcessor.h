@@ -20,8 +20,6 @@ public:
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
-    bool isBusesLayoutSupported (const BusesLayout& /*layouts*/) const override { return true; }
-
     void processBlock (juce::AudioBuffer<float>& buffer,
                        juce::MidiBuffer&         midiMessages) noexcept RTSAN_NONBLOCKING override;
 
@@ -77,6 +75,9 @@ public:
     // Bypass skips the selected algorithm entirely; the loop (if enabled) still plays.
     void               setBypassed (bool shouldBypass) noexcept { bypassed.store (shouldBypass); }
     [[nodiscard]] bool isBypassed() const noexcept { return bypassed.load(); }
+
+    // protected:
+    bool isBusesLayoutSupported (const BusesLayout& /*layouts*/) const override { return true; }
 
 private:
     // The algorithms available in the playground. To add one: a member here, an entry in `algorithms` (its order is the combo box order) and bump the array size.

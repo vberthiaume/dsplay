@@ -10,6 +10,7 @@ public:
     enum class Parameter : std::uint8_t
     {
         gain,
+        tapSize,
         count
     };
 
@@ -24,10 +25,11 @@ private:
     double                           sampleRate { defaultSampleRate };
     static const AlgorithmDescriptor descriptor;
 
-    static constexpr auto                                  tapSize { 5 };
-    static constexpr size_t                                numTapChannels { 2 };
-    std::array<std::array<float, tapSize>, numTapChannels> tap {};
-    size_t                                                 curTap { 0 };
+    static constexpr auto                          tapSize { 50 };
+    static constexpr size_t                        numTapChannels { 2 };
+    std::array<std::vector<float>, numTapChannels> tap {};
+    // std::vector<float>tap;
+    size_t curTap { 0 };
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedGain;
 };
