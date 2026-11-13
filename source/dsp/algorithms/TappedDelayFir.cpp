@@ -7,7 +7,7 @@ const AlgorithmDescriptor TappedDelayFir::descriptor {
     .numParameters = std::to_underlying (Parameter::count),
     .parameters    = { {
         { .name = "Gain", .min = 0.f, .max = 24.f, .defaultValue = 0.f, .suffix = " dB", .decimals = 1 },
-        // { .name = "Taps", .min = 1.f, .max = 100.f, .defaultValue = 5.f, .suffix = " dB", .decimals = 0 },
+        { .name = "Taps", .min = 1.f, .max = 100.f, .defaultValue = 5.f, .suffix = " taps", .decimals = 0 },
     }, },
 };
 
@@ -15,17 +15,16 @@ void TappedDelayFir::prepare (const juce::dsp::ProcessSpec& spec)
 {
     sampleRate = spec.sampleRate;
     smoothedGain.reset (sampleRate, smoothingSeconds);
+    for (auto& channelTap : tap)
+        channelTap.resize (tapSize);
+
     reset();
 }
 
 void TappedDelayFir::reset() noexcept
 {
-    // for (auto& channelTap : tap)
-    //     channelTap.fill (0.f);
-
-    for (auto& channel : tap)
-        for (auto& tapValue : channel)
-            tapValue = 0.f;
+    for (auto& channelTap : tap)
+        std::ranges::fill (channelTap, 0.f);
 
     curTap = 0;
 }

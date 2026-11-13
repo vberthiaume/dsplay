@@ -218,9 +218,9 @@ TEST_CASE ("Compressor reduces loud signals and leaves quiet ones alone", "[algo
     setKnob (plugin, Parameter::release, releaseMs);
     setKnob (plugin, Parameter::makeup, makeupDb);
 
-    const auto loudInputRms = loudAmplitude / juce::MathConstants<float>::sqrt2;
-    const auto loudRms      = steadyStateRms (plugin, toneHz, loudAmplitude);
-    const auto reductionDb  = juce::Decibels::gainToDecibels (loudRms / loudInputRms);
+    constexpr auto loudInputRms = loudAmplitude / juce::MathConstants<float>::sqrt2;
+    const auto     loudRms      = steadyStateRms (plugin, toneHz, loudAmplitude);
+    const auto     reductionDb  = juce::Decibels::gainToDecibels (loudRms / loudInputRms);
     CHECK (reductionDb < minReductionDb);
 
     const auto quietAmplitude = juce::Decibels::decibelsToGain (quietLevelDb);
