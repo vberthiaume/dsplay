@@ -263,7 +263,7 @@ jobs:
             cmake_flags:  "-DENABLE_COVERAGE=ON"
 
     name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       UBSAN_OPTIONS: "halt_on_error=1:abort_on_error=1"
       CC:  ${{ matrix.cc  || 'clang' }}
