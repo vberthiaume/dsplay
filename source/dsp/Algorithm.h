@@ -62,6 +62,7 @@ public:
     void setParameter (std::size_t index, float value) noexcept
     {
         values[index].store (value, std::memory_order_relaxed);
+        onParameterChanged (index, value);
     }
 
     [[nodiscard]] float getParameter (std::size_t index) const noexcept
@@ -79,6 +80,9 @@ public:
     // Tighten the ProcessorBase contract: these run on the audio thread.
     void reset() noexcept RTSAN_NONBLOCKING override                                                            = 0;
     void process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept RTSAN_NONBLOCKING override = 0;
+
+protected:
+    virtual void onParameterChanged (std::size_t index, float value) noexcept {}
 
 private:
     const AlgorithmDescriptor&                    descriptor;

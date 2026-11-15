@@ -15,6 +15,12 @@ void TappedDelayFir::prepare (const juce::dsp::ProcessSpec& spec)
 {
     sampleRate = spec.sampleRate;
     smoothedGain.reset (sampleRate, smoothingSeconds);
+    resizeTapsAndReset();
+}
+
+void TappedDelayFir::resizeTapsAndReset()
+{
+    const auto tapSize { getTapSize() };
     for (auto& channelTap : tap)
         channelTap.resize (tapSize);
 
@@ -29,11 +35,18 @@ void TappedDelayFir::reset() noexcept
     curTap = 0;
 }
 
+void TappedDelayFir::onParameterChanged (std::size_t index, float value) noexcept
+{
+    if (index == std::to_underlying (Parameter::tapSize))
+        resizeTapsAndReset();
+}
+
 void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept
 {
     auto&      block       = context.getOutputBlock();
     const auto numSamples  = block.getNumSamples();
     const auto numChannels = block.getNumChannels();
+    const auto tapSize { getTapSize() };
     // jassert (numChannels == numTapChannels);
 
     smoothedGain.setTargetValue (juce::Decibels::decibelsToGain (getParameter (Parameter::gain)));
