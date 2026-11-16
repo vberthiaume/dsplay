@@ -7,7 +7,7 @@ const AlgorithmDescriptor TappedDelayFir::descriptor {
     .numParameters = std::to_underlying (Parameter::count),
     .parameters    = { {
         { .name = "Gain", .min = 0.f, .max = 24.f, .defaultValue = 0.f, .suffix = " dB", .decimals = 1 },
-        { .name = "Taps", .min = 1.f, .max = 100.f, .defaultValue = 5.f, .suffix = " taps", .decimals = 0 },
+        { .name = "Taps", .min = 1.f, .max = maxTaps, .defaultValue = 5.f, .suffix = " taps", .decimals = 0 },
     }, },
 };
 
@@ -15,15 +15,6 @@ void TappedDelayFir::prepare (const juce::dsp::ProcessSpec& spec)
 {
     sampleRate = spec.sampleRate;
     smoothedGain.reset (sampleRate, smoothingSeconds);
-    resizeTapsAndReset();
-}
-
-void TappedDelayFir::resizeTapsAndReset()
-{
-    const auto tapSize { getTapSize() };
-    for (auto& channelTap : tap)
-        channelTap.resize (tapSize);
-
     reset();
 }
 
@@ -35,19 +26,13 @@ void TappedDelayFir::reset() noexcept
     curTap = 0;
 }
 
-void TappedDelayFir::onParameterChanged (std::size_t index, float value) noexcept
-{
-    if (index == std::to_underlying (Parameter::tapSize))
-        resizeTapsAndReset();
-}
-
 void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept
 {
     auto&      block       = context.getOutputBlock();
     const auto numSamples  = block.getNumSamples();
     const auto numChannels = block.getNumChannels();
     const auto tapSize { getTapSize() };
-    // jassert (numChannels == numTapChannels);
+    jassert (numChannels == numTapChannels);
 
     smoothedGain.setTargetValue (juce::Decibels::decibelsToGain (getParameter (Parameter::gain)));
 
@@ -71,7 +56,7 @@ void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& c
             //calculate filtered sample value from the current tap
             curSample = 0.f;
             for (std::size_t t = 0; t < tapSize; ++t)
-                curSample += tap.at (ch).at (t) / tapSize;
+                curSample += tap.at (ch).at (t) / static_cast<float> (tapSize);
 
             //apply the gain
             curSample *= gainLinear;

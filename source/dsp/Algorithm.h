@@ -82,7 +82,7 @@ public:
     void process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept RTSAN_NONBLOCKING override = 0;
 
 protected:
-    virtual void onParameterChanged (std::size_t index, float value) noexcept {}
+    virtual void onParameterChanged (std::size_t /*index*/, float /*value*/) noexcept {}
 
 private:
     const AlgorithmDescriptor&                    descriptor;

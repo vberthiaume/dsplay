@@ -7,6 +7,10 @@ namespace dsplay
 class TappedDelayFir final : public Algorithm
 {
 public:
+    static constexpr size_t maxTaps { 100 };
+    static constexpr double defaultSampleRate { 44100.0 };
+    static constexpr size_t numTapChannels { 2 };
+
     enum class Parameter : std::uint8_t
     {
         gain,
@@ -20,22 +24,18 @@ public:
     void reset() noexcept RTSAN_NONBLOCKING override;
     void process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept RTSAN_NONBLOCKING override;
 
-protected:
-    void onParameterChanged (std::size_t index, float value) noexcept override;
-
 private:
-    static constexpr double          defaultSampleRate { 44100.0 };
     double                           sampleRate { defaultSampleRate };
     static const AlgorithmDescriptor descriptor;
 
-    // static constexpr auto                          tapSize { 50 };
-    static constexpr size_t                        numTapChannels { 2 };
-    std::array<std::vector<float>, numTapChannels> tap {};
-    size_t                                         curTap { 0 };
+    std::array<std::array<float, maxTaps>, numTapChannels> tap {};
+    size_t                                                 curTap { 0 };
 
-    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedGain;
+    juce::SmoothedValue<float> smoothedGain;
 
-    void        resizeTapsAndReset();
-    std::size_t getTapSize() const { return static_cast<std::size_t> (getParameter (Parameter::tapSize)); }
+    [[nodiscard]] std::size_t getTapSize() const
+    {
+        return static_cast<std::size_t> (getParameter (Parameter::tapSize));
+    }
 };
 } // namespace dsplay
