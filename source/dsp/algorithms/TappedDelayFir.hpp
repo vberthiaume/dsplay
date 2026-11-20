@@ -25,7 +25,6 @@ public:
     void process (const juce::dsp::ProcessContextReplacing<float>& context) noexcept RTSAN_NONBLOCKING override;
 
 private:
-    double                           sampleRate { defaultSampleRate };
     static const AlgorithmDescriptor descriptor;
 
     std::array<std::array<float, maxTaps>, numTapChannels> tap {};

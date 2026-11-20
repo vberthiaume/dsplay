@@ -4,7 +4,8 @@
 
 namespace dsplay
 {
-// Feed-forward compressor with a stereo-linked peak detector, soft knee, and log-domain attack/release smoothing of the gain reduction. Follows the design in Giannoulis, Massberg & Reiss, "Digital Dynamic Range Compressor Design - A Tutorial and Analysis" (JAES 2012).
+/** Feed-forward compressor with a stereo-linked peak detector, soft knee, and log-domain attack/release smoothing of the gain reduction. Follows the design in Giannoulis, Massberg & Reiss, "Digital Dynamic Range Compressor Design - A Tutorial and Analysis" (JAES 2012).
+*/
 class Compressor final : public Algorithm
 {
 public:
@@ -37,12 +38,9 @@ private:
 
     static const AlgorithmDescriptor descriptor;
 
-    double sampleRate { defaultSampleRate };
-
     // Per-block copies of the parameters used inside the sample loop.
     float thresholdDb { 0.f };
     float ratio { 1.f };
-
     float gainReductionDb { 0.f }; // smoothed detector state, shared by all channels (stereo-linked)
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedMakeupGain;
