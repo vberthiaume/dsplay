@@ -54,6 +54,8 @@ void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& c
             //add current sample value to the tap
             tap.at (ch).at (curTap) = curSample;
 
+            //NOW HERE: I tried to replace the tapSizes in this loop by curTap but the glitches are even worse.
+            //maybe I need some kind of circular buffer? There's something I'm missing about the way to manage the tap content
             //calculate filtered sample value from the current tap
             curSample = 0.f;
             for (std::size_t t = 0; t < tapSize; ++t)
