@@ -30,11 +30,7 @@ private:
     std::array<std::array<float, maxTaps>, numTapChannels> tap {};
     size_t                                                 curTap { 0 };
 
-    juce::SmoothedValue<float> smoothedGain;
-
-    [[nodiscard]] std::size_t getTapSize() const
-    {
-        return static_cast<std::size_t> (getParameter (Parameter::tapSize));
-    }
+    juce::SmoothedValue<float>  smoothedGain;
+    juce::SmoothedValue<size_t> smoothedTapSize;
 };
 } // namespace dsplay

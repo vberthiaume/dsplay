@@ -31,18 +31,19 @@ void TappedDelayFir::process (const juce::dsp::ProcessContextReplacing<float>& c
     auto&      block       = context.getOutputBlock();
     const auto numSamples  = block.getNumSamples();
     const auto numChannels = block.getNumChannels();
-    const auto tapSize { getTapSize() };
     jassert (numChannels == numTapChannels);
 
     smoothedGain.setTargetValue (juce::Decibels::decibelsToGain (getParameter (Parameter::gain)));
+    smoothedTapSize.setTargetValue (static_cast<size_t> (getParameter (Parameter::tapSize)));
 
     if (numChannels == 0)
         return;
 
     for (std::size_t i = 0; i < numSamples; ++i)
     {
-        //get the current gain
+        //get the current smoothed values
         const auto gainLinear = smoothedGain.getNextValue();
+        const auto tapSize    = smoothedTapSize.getNextValue();
 
         //for each channel
         for (std::size_t ch = 0; ch < numChannels; ++ch)
